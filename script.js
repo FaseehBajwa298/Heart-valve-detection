@@ -462,3 +462,35 @@ const notificationStyles = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = notificationStyles;
 document.head.appendChild(styleSheet);
+
+// Image upload preview for info panel
+function wireInfoImageUpload() {
+    const input = document.getElementById('infoImageInput');
+    const img = document.getElementById('infoImage');
+    if (!input || !img) return;
+
+    input.addEventListener('change', function() {
+        const file = this.files && this.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            if (typeof showNotification === 'function') {
+                showNotification('Please select a valid image file.', 'warning');
+            }
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        img.src = objectUrl;
+        img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+        };
+
+        if (typeof showNotification === 'function') {
+            showNotification('Image loaded successfully.', 'success');
+        }
+    });
+}
+
+// Ensure upload preview wiring runs after DOM ready
+document.addEventListener('DOMContentLoaded', wireInfoImageUpload);
