@@ -167,6 +167,7 @@ body {
     transform: translateX(-20px);
     pointer-events: none;
     position: absolute;
+    display: none; /* Prevent overlapping forms when hidden */
 }
 
 .form-title {
@@ -242,6 +243,30 @@ body {
 .toggle-password:hover {
     color: #e74c3c !important;
 }
+
+/* Password strength meter */
+.password-strength {
+    margin-top: 8px;
+    height: 8px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+}
+
+.password-strength::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: #e74c3c; /* weak */
+    transition: width 0.25s ease, background 0.25s ease;
+}
+
+.password-strength.level-1::before { width: 25%; background: #e74c3c; }
+.password-strength.level-2::before { width: 50%; background: #f39c12; }
+.password-strength.level-3::before { width: 75%; background: #f1c40f; }
+.password-strength.level-4::before { width: 100%; background: #2ecc71; }
 
 /* Form Options */
 .form-options {

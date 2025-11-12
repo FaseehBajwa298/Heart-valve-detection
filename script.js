@@ -2,27 +2,43 @@
 const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
 
-// Form switching functionality
+// Form switching functionality (defensive against missing elements)
 function switchToSignup() {
-    loginForm.classList.add('hidden');
-    signupForm.classList.remove('hidden');
-    
-    // Add slide animation
-    setTimeout(() => {
-        signupForm.style.transform = 'translateX(0)';
-        signupForm.style.opacity = '1';
-    }, 50);
+    if (!loginForm || !signupForm) return;
+    try {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+        setTimeout(() => {
+            if (signupForm) {
+                signupForm.style.transform = 'translateX(0)';
+                signupForm.style.opacity = '1';
+            }
+        }, 50);
+    } catch (err) {
+        if (typeof showNotification === 'function') {
+            showNotification('Could not open Sign Up form.', 'error');
+        }
+        console.error(err);
+    }
 }
 
 function switchToLogin() {
-    signupForm.classList.add('hidden');
-    loginForm.classList.remove('hidden');
-    
-    // Add slide animation
-    setTimeout(() => {
-        loginForm.style.transform = 'translateX(0)';
-        loginForm.style.opacity = '1';
-    }, 50);
+    if (!loginForm || !signupForm) return;
+    try {
+        signupForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        setTimeout(() => {
+            if (loginForm) {
+                loginForm.style.transform = 'translateX(0)';
+                loginForm.style.opacity = '1';
+            }
+        }, 50);
+    } catch (err) {
+        if (typeof showNotification === 'function') {
+            showNotification('Could not open Login form.', 'error');
+        }
+        console.error(err);
+    }
 }
 
 // Password visibility toggle
@@ -494,3 +510,29 @@ function wireInfoImageUpload() {
 
 // Ensure upload preview wiring runs after DOM ready
 document.addEventListener('DOMContentLoaded', wireInfoImageUpload);
+
+// Password strength meter logic
+function computePasswordStrength(password) {
+    let score = 0;
+    if (!password) return 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/\d/.test(password) || /[^a-zA-Z\d]/.test(password)) score++;
+    return Math.min(score, 4);
+}
+
+function wirePasswordStrengthMeter() {
+    const passwordInput = document.getElementById('signupPassword');
+    const strengthBar = document.getElementById('passwordStrength');
+    if (!passwordInput || !strengthBar) return;
+
+    const update = () => {
+        const level = computePasswordStrength(passwordInput.value);
+        strengthBar.className = 'password-strength' + (level ? ` level-${level}` : '');
+    };
+    passwordInput.addEventListener('input', update);
+    update();
+}
+
+document.addEventListener('DOMContentLoaded', wirePasswordStrengthMeter);
