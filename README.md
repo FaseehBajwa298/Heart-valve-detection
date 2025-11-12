@@ -1,6 +1,6 @@
 # 🫀 AI Heart Valve Disorder Detection - Web Application
 
-A modern, responsive web application for **AI-based Heart Valve Disorder Detection** system. This project serves as the front-end authentication portal for an advanced AI-powered cardiac analysis system.
+A modern, responsive web application for **AI-based Heart Valve Disorder Detection**. This project currently provides a polished front-end authentication portal and foundation UI for an advanced AI-powered cardiac analysis system.
 
 ## 🎯 Project Overview
 
@@ -9,11 +9,12 @@ This web application is part of a Final Year Project (FYP) focused on developing
 ## ✨ Features
 
 ### 🔐 Authentication System
-- **Dual Forms**: Seamless switching between Login and Sign-up forms
-- **Input Validation**: Real-time email, password, and phone number validation
-- **Password Security**: Strength requirements and visibility toggle
-- **Remember Me**: Persistent login functionality
-- **Social Login**: Google authentication integration ready
+- **Dual Forms**: Login and Sign Up with seamless toggling via in-page links
+- **Default View**: Login opens by default; link switches to Sign Up
+- **Live Validation**: Email, password, and optional phone number validation
+- **Password Strength Meter**: Real-time meter (weak/medium/strong) on Sign Up
+- **Robust Toggles**: Defensive JavaScript prevents null reference errors
+- **Clean Transitions**: Hidden forms use `display: none` to avoid overlap
 
 ### 🎨 Modern UI/UX
 - **Responsive Design**: Optimized for desktop, tablet, and mobile devices
@@ -48,35 +49,37 @@ This web application is part of a Final Year Project (FYP) focused on developing
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ai-heart-valve-detection.git
-   cd ai-heart-valve-detection
+   git clone https://github.com/FaseehBajwa298/Heart-valve-detection.git
+   cd Heart-valve-detection
    ```
 
-2. **Open the application**
-   - **Option 1**: Open `index.html` directly in your browser
-   - **Option 2**: Use a local server (recommended)
-     ```bash
-     # Using Python
-     python -m http.server 8000
-     
-     # Using Node.js
-     npx serve .
-     
-     # Using PHP
-     php -S localhost:8000
-     ```
+2. **Start a local server (recommended)**
+   ```bash
+   # Using Python (cross-platform)
+   python -m http.server 8000
+   
+   # Using Node.js
+   npx serve .
+   
+   # Using PHP
+   php -S localhost:8000
+   ```
 
 3. **Access the application**
-   - Direct: `file:///path/to/index.html`
    - Local server: `http://localhost:8000`
+   - Or open `index.html` directly in your browser
+
+4. **Open in Chrome**
+   - Visit `http://localhost:8000/` in Google Chrome
+   - The Login page loads by default; use the link to switch to Sign Up
 
 ## 📁 Project Structure
 
 ```
 ai-heart-valve-detection/
 ├── index.html          # Main HTML file with dual authentication forms
-├── styles.css          # Complete styling with animations and responsive design
-├── script.js           # JavaScript functionality and form validation
+├── styles.css          # Styling, responsive design, animations, strength meter styles
+├── script.js           # Form toggles, validation, password strength logic
 ├── .gitignore          # Git ignore file
 └── README.md           # Project documentation
 ```
@@ -113,9 +116,17 @@ Edit the CSS variables in `styles.css`:
 ```
 
 ### Adding Features
-- Extend `script.js` for additional functionality
-- Modify `index.html` for new form fields
-- Update `styles.css` for styling changes
+- Extend `script.js` for additional functionality (validation, toggles, UI logic)
+- Modify `index.html` for new form fields or content
+- Update `styles.css` for styling changes, themes, and animations
+
+## 📝 Recent Changes
+
+- Default view set to Login; in-page links toggle between forms
+- Added live password strength meter to Sign Up (weak/medium/strong)
+- Hardened form toggle functions with defensive checks and error handling
+- Prevented overlapping forms by adding `display: none` to hidden wrappers
+- Verified UI in Chrome and local server at `http://localhost:8000/`
 
 ## 🚀 Future Enhancements
 
@@ -131,7 +142,7 @@ Edit the CSS variables in `styles.css`:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your changes (`git commit -m "Add some AmazingFeature"`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
@@ -141,10 +152,8 @@ This project is part of an academic Final Year Project (FYP) for AI-based Heart 
 
 ## 👨‍💻 Author
 
-**Your Name** - Final Year Project  
-**Institution**: [Your University/College]  
-**Program**: [Your Program/Degree]  
-**Year**: [Academic Year]
+**Faseeh Bajwa**  
+Heart Valve Detection — FYP
 
 ## 🙏 Acknowledgments
 
