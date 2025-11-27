@@ -203,7 +203,7 @@ body {
 .input-wrapper i {
     position: absolute;
     left: 15px;
-    color: #999;
+    color: #afadad;
     font-size: 1rem;
     z-index: 2;
 }
@@ -211,17 +211,17 @@ body {
 .input-wrapper input {
     width: 100%;
     padding: 15px 15px 15px 45px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid #a7a8aa;
     border-radius: 10px;
     font-size: 1rem;
     font-family: 'Poppins', sans-serif;
     transition: all 0.3s ease;
-    background: #fff;
+    background: #e0dfdf;
 }
 
 .input-wrapper input:focus {
     outline: none;
-    border-color: #e74c3c;
+    border-color: #eb1603;
     box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
     transform: translateY(-2px);
 }
