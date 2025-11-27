@@ -331,6 +331,8 @@ function addKeyboardNavigation() {
         // Switch forms with Tab + Shift
         if (e.key === 'Tab' && e.shiftKey && e.ctrlKey) {
             e.preventDefault();
+            // Guard against pages without login/signup forms (e.g., forgot page)
+            if (!loginForm || !signupForm) return;
             const isLoginVisible = !loginForm.classList.contains('hidden');
             if (isLoginVisible) {
                 switchToSignup();
@@ -355,8 +357,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize all functionality
     addInputValidation();
     handleFormSubmission();
+    handleForgotSubmission();
     addEnhancedAnimations();
     addKeyboardNavigation();
+    wireFormHashRouting();
     
     // Add welcome animation
     setTimeout(() => {
@@ -536,3 +540,63 @@ function wirePasswordStrengthMeter() {
 }
 
 document.addEventListener('DOMContentLoaded', wirePasswordStrengthMeter);
+
+function handleForgotSubmission() {
+    const form = document.getElementById('forgotForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail');
+        if (!validateInput(email)) return;
+        const submitButton = this.querySelector('.auth-btn.primary');
+        submitButton.classList.add('loading');
+        submitButton.disabled = true;
+        setTimeout(() => {
+            submitButton.classList.remove('loading');
+            submitButton.disabled = false;
+            showNotification('Password reset link sent to your email.', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1500);
+        }, 1500);
+    });
+}
+
+function wireForgotLink() {
+    const link = document.querySelector('.forgot-password');
+    if (!link) return;
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = 'forgot.html';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', wireForgotLink);
+
+function applyFormRoute() {
+    const hash = window.location.hash;
+    if (hash === '#signup') {
+        switchToSignup();
+    } else {
+        switchToLogin();
+    }
+}
+
+function wireFormHashRouting() {
+    window.addEventListener('hashchange', applyFormRoute);
+    const toSignup = document.querySelector('a[href="#signup"]');
+    const toLogin = document.querySelector('a[href="#login"]');
+    if (toSignup) {
+        toSignup.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.hash = 'signup';
+        });
+    }
+    if (toLogin) {
+        toLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.hash = 'login';
+        });
+    }
+    applyFormRoute();
+}
