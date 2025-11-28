@@ -567,7 +567,7 @@ function wireForgotLink() {
     if (!link) return;
     link.addEventListener('click', function(e) {
         e.preventDefault();
-        window.location.href = 'forgot.html';
+        window.location.href = 'forget.html';
     });
 }
 
