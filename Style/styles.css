@@ -167,7 +167,7 @@ body {
     transform: translateX(-20px);
     pointer-events: none;
     position: absolute;
-    display: none; /* Prevent overlapping forms when hidden */
+    display: none; 
 }
 
 .form-title {
