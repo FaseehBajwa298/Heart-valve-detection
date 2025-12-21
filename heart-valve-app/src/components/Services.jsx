@@ -3,8 +3,17 @@ import React from 'react';
 const Services = () => {
   const services = [
     {
-      title: "AI Heart Sound Analysis",
-      description: "Upload heart sound recordings (PCG) and get instant analysis detecting murmurs and potential valve anomalies.",
+      title: "Heart Valve Disorder Overview",
+      description: "Provides basic information about heart valve disorders, explaining how valve problems can affect normal blood flow and overall heart function.",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      )
+    },
+    {
+      title: "Feature-Based Prediction",
+      description: "Uses ECG-derived clinical features such as heart rate and timing intervals to generate a prediction related to heart valve conditions.",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -12,29 +21,11 @@ const Services = () => {
       )
     },
     {
-      title: "Real-time Screening",
-      description: "Fast and efficient screening process designed for clinics and remote areas without access to cardiologists.",
+      title: "Patient History",
+      description: "Allows storage and review of previous prediction records to help observe patterns or changes over time.",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    {
-      title: "Patient History Tracking",
-      description: "Securely store and track patient heart health records over time to monitor progression or improvement.",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-      )
-    },
-    {
-      title: "Expert Consultation",
-      description: "Connect with specialized cardiologists for second opinions on the AI-generated reports.",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       )
     }
@@ -47,11 +38,11 @@ const Services = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-[#1a2e35] mb-4">Our Services</h2>
           <div className="w-20 h-1 bg-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
-            Comprehensive solutions for early detection and management of heart valve disorders.
+            Key features designed to support the assessment of heart valve disorders.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((service, index) => (
             <div key={index} className="bg-white rounded-lg p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 border-t-4 border-blue-500 group">
               <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
