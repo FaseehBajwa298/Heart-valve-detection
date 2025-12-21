@@ -44,9 +44,7 @@ const Navbar = () => {
           </Link>
         )}
         
-        <button className="bg-[#FF0000] hover:bg-red-700 text-white px-6 py-3 font-bold text-sm tracking-wide transition-colors hidden lg:block">
-          FOR EMERGENCIES CLICK HERE
-        </button>
+
       </div>
     </nav>
   );
