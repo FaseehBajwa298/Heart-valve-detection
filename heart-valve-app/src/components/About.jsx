@@ -8,15 +8,15 @@ const About = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-[#1a2e35] mb-4">About Us</h2>
           <div className="w-20 h-1 bg-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
-            Dedicated to revolutionizing cardiac care through the power of Artificial Intelligence.
+            An academic project focused on the application of computational techniques for cardiac health assessment.
           </p>
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="w-full md:w-1/2">
             <img 
-              src="https://images.unsplash.com/photo-1576091160550-217358c7be61?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
-              alt="Medical Team" 
+              src="https://as2.ftcdn.net/v2/jpg/18/45/76/29/1000_F_1845762966_yXYlDMV6vwgpZXgT30ZJkvpYnQp7EJoa.jpg" 
+              alt="Medical Technology Visualization" 
               className="rounded-lg shadow-xl w-full object-cover h-[400px]"
             />
           </div>
@@ -24,22 +24,14 @@ const About = () => {
           <div className="w-full md:w-1/2">
             <h3 className="text-2xl font-bold text-[#1a2e35] mb-6">Who We Are</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
-              At Heart Valve AI, we are a team of medical professionals, data scientists, and engineers united by a single mission: to make heart valve disease detection accessible, accurate, and early.
+              We are an academic research team working on the application of intelligent computational methods to support the assessment of heart valve disorders.
             </p>
             <p className="text-gray-700 leading-relaxed mb-6">
-              Traditional methods of diagnosing heart valve disorders often require expensive equipment and specialized training. Our platform leverages state-of-the-art Machine Learning algorithms trained on thousands of heart sound recordings to provide instant, reliable screenings.
+              Heart valve diseases occur when one or more valves of the heart fail to open or close properly, leading to abnormal blood flow and increased strain on the heart. Early identification of such conditions is important for timely medical evaluation.
             </p>
-            
-            <div className="grid grid-cols-2 gap-6 mt-8">
-              <div className="p-4 bg-blue-50 rounded-lg text-center">
-                <span className="block text-3xl font-bold text-blue-600 mb-2">98%+</span>
-                <span className="text-sm text-gray-600">Accuracy Rate</span>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg text-center">
-                <span className="block text-3xl font-bold text-blue-600 mb-2">24/7</span>
-                <span className="text-sm text-gray-600">Available Support</span>
-              </div>
-            </div>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              This project focuses on analyzing ECG-derived clinical parameters to assist in identifying patterns that may be associated with heart valve abnormalities. The system is designed for educational and research purposes, demonstrating how data-driven approaches can contribute to cardiac health assessment in a controlled academic setting.
+            </p>
           </div>
         </div>
       </div>
