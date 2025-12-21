@@ -12,17 +12,17 @@ const Hero = () => {
         {/* Left Side: Text Content */}
         <div className="w-full md:w-1/2 text-left relative">
           <h3 className="text-[#1a2e35] text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-6">
-            Predictor that <br />
-            You can Trust with the accuracy of <br />
-            <span className="text-[#1a2e35]">98.25%</span>
+            AI-Based Heart Valve Disorder Classification
           </h3>
 
-          <p className="text-gray-700 text-sm md:text-base leading-relaxed mb-8 max-w-xl">
-            <strong>Heart Valve Disease</strong> occurs when one or more of the valves in your heart doesn't work properly. 
-            Our advanced AI system analyzes heart sounds to detect anomalies with high precision. 
-            Early detection is key to effective treatment and management. 
-            This tool assists medical professionals in identifying potential valve disorders quickly and accurately.
-          </p>
+          <div className="text-gray-700 text-sm md:text-base leading-relaxed mb-8 max-w-xl space-y-4">
+            <p>
+              Heart valve disorders occur when one or more valves of the heart do not open or close properly, affecting normal blood flow through the heart. This can lead to conditions such as valve narrowing (stenosis) or leakage (regurgitation), which may cause symptoms like shortness of breath, fatigue, chest pain, or irregular heartbeat.
+            </p>
+            <p>
+              This system analyzes ECG-derived clinical parameters, including heart rate, PR interval, QRS duration, and QTc, to assist in identifying the likelihood of major heart valve disorders through an intelligent computational approach.
+            </p>
+          </div>
         </div>
 
         {/* Right Side: Image */}
