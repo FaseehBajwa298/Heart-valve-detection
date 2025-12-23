@@ -12,7 +12,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-[#4C9BF5] text-white px-4 py-4 md:px-12 flex justify-between items-center shadow-md">
+    <nav className="sticky top-0 z-50 bg-[#4C9BF5] text-white px-4 py-4 md:px-12 flex justify-between items-center shadow-md">
       {/* Logo Section */}
       <div className="flex items-center gap-2">
         <img src="/Logo.png" alt="Medilife Logo" className="h-10 md:h-12" />
