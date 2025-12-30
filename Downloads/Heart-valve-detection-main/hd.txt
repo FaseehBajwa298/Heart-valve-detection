@@ -1,0 +1,367 @@
+import os
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from sklearn.metrics import roc_auc_score, roc_curve
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+BASE = "/kaggle/input/datasets/muhammadfasseh/echonext/ECHONEXT"
+
+CSV = f"{BASE}/echonext_metadata_100k.csv"
+
+TRAIN_W = f"{BASE}/EchoNext_train_waveforms_2.npy"
+VAL_W   = f"{BASE}/EchoNext_val_waveforms.npy"
+TEST_W  = f"{BASE}/EchoNext_test_waveforms.npy"
+EXT_W   = f"{BASE}/EchoNext_no_split_waveforms.npy"
+
+TRAIN_T = f"{BASE}/EchoNext_train_tabular_features.npy"
+VAL_T   = f"{BASE}/EchoNext_val_tabular_features.npy"
+TEST_T  = f"{BASE}/EchoNext_test_tabular_features.npy"
+EXT_T   = f"{BASE}/EchoNext_no_split_tabular_features.npy"
+
+df = pd.read_csv(CSV)
+print(df.shape)
+
+LABELS = [
+"lvef_lte_45_flag",
+"lvwt_gte_13_flag",
+"aortic_stenosis_moderate_or_greater_flag",
+"aortic_regurgitation_moderate_or_greater_flag",
+"mitral_regurgitation_moderate_or_greater_flag",
+"tricuspid_regurgitation_moderate_or_greater_flag",
+"pulmonary_regurgitation_moderate_or_greater_flag",
+"rv_systolic_dysfunction_moderate_or_greater_flag",
+"pericardial_effusion_moderate_large_flag",
+"pasp_gte_45_flag",
+"tr_max_gte_32_flag",
+"shd_moderate_or_greater_flag"
+]
+
+NUM_LABELS = len(LABELS)
+
+df = pd.read_csv(CSV)
+
+train_df = df[df["split"]=="train"].reset_index(drop=True)
+val_df   = df[df["split"]=="val"].reset_index(drop=True)
+test_df  = df[df["split"]=="test"].reset_index(drop=True)
+
+# correct external split
+ext_df = df[df["split"]=="no_split"].reset_index(drop=True)
+
+y_train = train_df[LABELS].values
+y_val   = val_df[LABELS].values
+y_test  = test_df[LABELS].values
+y_ext   = ext_df[LABELS].values
+
+X_train_w = np.load(TRAIN_W, mmap_mode="r")
+X_val_w   = np.load(VAL_W, mmap_mode="r")
+X_test_w  = np.load(TEST_W, mmap_mode="r")
+X_ext_w   = np.load(EXT_W, mmap_mode="r")
+
+X_train_t = np.load(TRAIN_T)
+X_val_t   = np.load(VAL_T)
+X_test_t  = np.load(TEST_T)
+X_ext_t   = np.load(EXT_T)
+
+sample = X_train_w[:5000]
+
+lead_mean = sample.mean(axis=(0,1,2))
+lead_std  = sample.std(axis=(0,1,2)) + 1e-6
+
+lead_mean = lead_mean.reshape(1,12)
+lead_std  = lead_std.reshape(1,12)
+
+class ECGDataset(Dataset):
+
+    def __init__(self, w, t, y, train=False):
+        self.w = w
+        self.t = t
+        self.y = y
+        self.train = train
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+
+        # load waveform
+        wave = self.w[idx].astype(np.float32).copy()
+        wave = wave.squeeze(0)
+
+        # normalization
+        wave = (wave - lead_mean) / lead_std
+
+        if self.train:
+
+            scale = np.random.uniform(0.9, 1.1)
+            wave *= scale
+
+            noise = np.random.normal(0, 0.003, wave.shape).astype(np.float32)
+            wave += noise
+
+            shift = np.random.randint(-10, 10)
+            wave = np.roll(wave, shift, axis=0)
+
+        # ensure float32
+        wave = np.expand_dims(wave, 0).astype(np.float32)
+
+        tab = self.t[idx].astype(np.float32)
+        label = self.y[idx].astype(np.float32)
+
+        return (
+            torch.from_numpy(wave),
+            torch.from_numpy(tab),
+            torch.from_numpy(label)
+        )
+
+train_loader = DataLoader(
+ECGDataset(X_train_w,X_train_t,y_train,train=True),
+batch_size=32,
+shuffle=True
+)
+
+val_loader = DataLoader(
+ECGDataset(X_val_w,X_val_t,y_val),
+batch_size=64
+)
+
+test_loader = DataLoader(
+ECGDataset(X_test_w,X_test_t,y_test),
+batch_size=64
+)
+
+ext_loader = DataLoader(
+ECGDataset(X_ext_w,X_ext_t,y_ext),
+batch_size=64
+)
+
+class InceptionBlock(nn.Module):
+
+    def __init__(self,in_ch,out_ch):
+        super().__init__()
+
+        self.b1 = nn.Conv1d(in_ch,out_ch,1)
+        self.b3 = nn.Conv1d(in_ch,out_ch,3,padding=1)
+        self.b5 = nn.Conv1d(in_ch,out_ch,5,padding=2)
+
+        self.pool = nn.Sequential(
+            nn.MaxPool1d(3,stride=1,padding=1),
+            nn.Conv1d(in_ch,out_ch,1)
+        )
+
+        self.bn = nn.BatchNorm1d(out_ch*4)
+        self.relu = nn.ReLU()
+
+    def forward(self,x):
+
+        x = torch.cat([
+            self.b1(x),
+            self.b3(x),
+            self.b5(x),
+            self.pool(x)
+        ],dim=1)
+
+        return self.relu(self.bn(x))
+
+
+class ECGModel(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self.inc1 = InceptionBlock(12,32)
+        self.inc2 = InceptionBlock(128,32)
+        self.inc3 = InceptionBlock(128,32)
+
+        self.pool = nn.AdaptiveAvgPool1d(1)
+
+        self.tab = nn.Sequential(
+            nn.Linear(7,64),
+            nn.ReLU(),
+            nn.Dropout(0.3)
+        )
+
+        self.fc = nn.Sequential(
+            nn.Linear(192,128),
+            nn.ReLU(),
+            nn.Dropout(0.4),
+            nn.Linear(128,NUM_LABELS)
+        )
+
+        self.label_corr = nn.Parameter(torch.eye(NUM_LABELS))
+
+    def forward(self,wave,tab):
+
+        wave = wave.squeeze(1).permute(0,2,1)
+
+        x1 = self.inc1(wave)
+        x2 = self.inc2(x1) + x1
+        x3 = self.inc3(x2) + x2
+
+        x = self.pool(x3).squeeze(-1)
+
+        t = self.tab(tab)
+
+        fused = torch.cat([x,t],dim=1)
+
+        logits = self.fc(fused)
+
+        logits = logits + logits @ self.label_corr
+
+        return logits
+
+model = ECGModel().to(device)
+
+pos = y_train.sum(axis=0)
+neg = len(y_train) - pos
+
+pos_weight = np.sqrt(neg/(pos+1e-6))
+pos_weight = np.clip(pos_weight,1,4)
+
+pos_weight = torch.tensor(pos_weight).float().to(device)
+
+criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+optimizer = torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=5e-4)
+
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    optimizer,
+    T_max=40
+)
+
+def train_epoch():
+
+    model.train()
+    total=0
+
+    for wave,tab,y in train_loader:
+
+        wave,tab,y = wave.to(device),tab.to(device),y.to(device)
+
+        optimizer.zero_grad()
+
+        out = model(wave,tab)
+
+        loss = criterion(out,y)
+
+        loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(),5)
+
+        optimizer.step()
+
+        total += loss.item()
+
+    return total/len(train_loader)
+
+def evaluate(loader):
+
+    model.eval()
+
+    preds=[]
+    labels=[]
+
+    with torch.no_grad():
+
+        for wave,tab,y in loader:
+
+            wave,tab = wave.to(device),tab.to(device)
+
+            out = torch.sigmoid(model(wave,tab))
+
+            preds.append(out.cpu())
+            labels.append(y)
+
+    preds = torch.cat(preds).numpy()
+    labels = torch.cat(labels).numpy()
+
+    return (
+        roc_auc_score(labels,preds,average="macro"),
+        roc_auc_score(labels,preds,average="micro"),
+        roc_auc_score(labels,preds,average="weighted")
+    )
+
+optimizer = torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=5e-4)
+
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    optimizer,
+    T_max=40
+) 
+
+best_val = 0
+
+for epoch in range(20):
+
+    loss = train_epoch()
+
+    scheduler.step()
+
+    val_macro,_,_ = evaluate(val_loader)
+
+    print("Epoch",epoch+1,"Loss",loss,"Val",val_macro)
+
+    if val_macro > best_val:
+
+        best_val = val_macro
+        torch.save(model.state_dict(),"best_model.pth")
+
+mask = train_df["most_recent_ecg"].values == 1
+
+X_stage_w = X_train_w[mask]
+X_stage_t = X_train_t[mask]
+y_stage   = y_train[mask]
+
+stage_loader = DataLoader(
+    ECGDataset(X_stage_w,X_stage_t,y_stage,train=True),
+    batch_size=32,
+    shuffle=True
+)
+
+model.load_state_dict(torch.load("best_model.pth"))
+
+optimizer = torch.optim.AdamW(model.parameters(),lr=5e-5)
+
+for epoch in range(6):
+
+    model.train()
+
+    for wave,tab,y in stage_loader:
+
+        wave,tab,y = wave.to(device),tab.to(device),y.to(device)
+
+        optimizer.zero_grad()
+
+        out = model(wave,tab)
+
+        loss = criterion(out,y)
+
+        loss.backward()
+
+        optimizer.step()
+
+    print("Stage2 Epoch",epoch+1)
+
+model.eval()
+
+preds = []
+labels = []
+
+with torch.no_grad():
+
+    for wave, tab, y in test_loader:   # val_loader bhi use kar sakte ho
+
+        wave = wave.to(device)
+        tab = tab.to(device)
+
+        out = torch.sigmoid(model(wave, tab))
+
+        preds.append(out.cpu())
+        labels.append(y)
+
+preds = torch.cat(preds).numpy()
+labels = torch.cat(labels).numpy()
+
