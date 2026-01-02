@@ -30,7 +30,7 @@ const About = () => {
               Heart valve diseases occur when one or more valves of the heart fail to open or close properly, leading to abnormal blood flow and increased strain on the heart. Early identification of such conditions is important for timely medical evaluation.
             </p>
             <p className="text-gray-700 leading-relaxed mb-6">
-              This project focuses on analyzing ECG-derived clinical parameters to assist in identifying patterns that may be associated with heart valve abnormalities. The system is designed for educational and research purposes, demonstrating how data-driven approaches can contribute to cardiac health assessment in a controlled academic setting.
+              This project focuses on using ECG to assist in identifying patterns that may be associated with heart valve abnormalities. The system is designed for educational and research purposes, demonstrating how data-driven approaches can contribute to cardiac health assessment in a controlled academic setting.
             </p>
           </div>
         </div>
