@@ -11,7 +11,7 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     login(email, password);
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
@@ -23,7 +23,7 @@ const Login = () => {
 
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md z-10 relative">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
+          <h2 className="text-3xl font-bold text-gray-800">Welcome</h2>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 

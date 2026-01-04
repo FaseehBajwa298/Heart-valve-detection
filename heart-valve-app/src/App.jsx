@@ -1,50 +1,93 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import { AuthProvider } from './context/AuthContext';
+import Overview from './pages/Overview';
+import Prediction from './pages/Prediction';
+import History from './pages/History';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
-// ScrollToAnchor component to handle hash scrolling
-const ScrollToAnchor = () => {
-  const { hash } = useLocation();
+// ScrollToTop component to handle scroll restoration and hash scrolling
+const ScrollToTop = () => {
+  const { pathname, hash } = useLocation();
 
   useEffect(() => {
-    if (hash) {
-      const element = document.getElementById(hash.replace('#', ''));
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (!hash) {
+      window.scrollTo(0, 0);
+    } else {
+      setTimeout(() => {
+        const element = document.getElementById(hash.replace('#', ''));
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 0);
     }
-  }, [hash]);
+  }, [pathname, hash]);
 
   return null;
+};
+
+// ProtectedRoute component to redirect unauthenticated users to Login
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// MainContent handles the routing and page transition animations
+const MainContent = () => {
+  const location = useLocation();
+  
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      
+      {/* 
+        The key={location.pathname} ensures the div re-renders 
+        triggering the animation on every route change 
+      */}
+      <div key={location.pathname} className="flex-grow animate-fade-in">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/overview" element={<Overview />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/prediction" element={
+            <ProtectedRoute>
+              <Prediction />
+            </ProtectedRoute>
+          } />
+          <Route path="/history" element={
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+
+      <Footer />
+    </div>
+  );
 };
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <ScrollToAnchor />
-        <div className="min-h-screen bg-white flex flex-col">
-          {/* Navbar is outside Routes so it appears on all pages, 
-              but if you want it only on Home, move it inside. 
-              Usually Navbar is global. */}
-          <Navbar />
-          
-          <div className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Routes>
-          </div>
-
-          <Footer />
-        </div>
+        <ScrollToTop />
+        <MainContent />
       </Router>
     </AuthProvider>
   );

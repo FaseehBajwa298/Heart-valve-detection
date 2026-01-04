@@ -2,7 +2,7 @@ import React from 'react';
 
 const Hero = () => {
   return (
-    <div className="relative bg-blue-50 min-h-[85vh] w-full flex items-center overflow-hidden py-12 md:py-0">
+    <div id="home" className="relative bg-blue-50 min-h-[85vh] w-full flex items-center overflow-hidden py-12 md:py-0">
       {/* Background Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-100/90 to-white/60 z-0"></div>
 
@@ -20,7 +20,7 @@ const Hero = () => {
               Heart valve disorders occur when one or more valves of the heart do not open or close properly, affecting normal blood flow through the heart. This can lead to conditions such as valve narrowing (stenosis) or leakage (regurgitation), which may cause symptoms like shortness of breath, fatigue, chest pain, or irregular heartbeat.
             </p>
             <p>
-              This system analyzes ECG-derived clinical parameters, including heart rate, PR interval, QRS duration, and QTc, to assist in identifying the likelihood of major heart valve disorders through an intelligent computational approach.
+              This system uses ECG to assist in identifying the likelihood of major heart valve disorders through an intelligent computational approach.
             </p>
           </div>
         </div>

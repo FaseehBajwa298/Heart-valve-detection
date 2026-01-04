@@ -48,11 +48,11 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2 inline-block">Quick Links</h3>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li><Link to="/" className="hover:text-blue-400 transition">Home</Link></li>
-              <li><a href="#about" className="hover:text-blue-400 transition">About Us</a></li>
-              <li><a href="#services" className="hover:text-blue-400 transition">Services</a></li>
-              <li><Link to="/login" className="hover:text-blue-400 transition">Login</Link></li>
-              <li><Link to="/register" className="hover:text-blue-400 transition">Register</Link></li>
+              <li><Link to="/" className="text-gray-400 hover:text-blue-400 transition">Home</Link></li>
+              <li><a href="#about" className="text-gray-400 hover:text-blue-400 transition">About Us</a></li>
+              <li><a href="#services" className="text-gray-400 hover:text-blue-400 transition">Services</a></li>
+              <li><Link to="/login" className="text-gray-400 hover:text-blue-400 transition">Login</Link></li>
+              <li><Link to="/register" className="text-gray-400 hover:text-blue-400 transition">Register</Link></li>
             </ul>
           </div>
 
@@ -60,9 +60,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2 inline-block">Services</h3>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li><a href="#" className="hover:text-blue-400 transition">Heart Valve Overview</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition">Feature-Based Prediction</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition">Patient History</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-blue-400 transition">Heart Valve Overview</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-blue-400 transition">ECG-Based Prediction</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-blue-400 transition">Patient History</a></li>
             </ul>
           </div>
 
@@ -70,11 +70,17 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2 inline-block">Contact Us</h3>
             <ul className="space-y-4 text-gray-400 text-sm">
-              <li className="flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              <li className="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span>Riphah International University<br />Department of Computer Science</span>
+                <span>Heart Valve AI Team</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>Final Year Project</span>
               </li>
               <li className="flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,7 +94,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-700 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Heart Valve AI Research. Academic Project.
+            &copy; {new Date().getFullYear()} Heart Valve AI. Final Year Project.
           </p>
         </div>
       </div>

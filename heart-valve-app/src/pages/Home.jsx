@@ -8,8 +8,8 @@ const Home = () => {
   return (
     <div className="flex flex-col">
       <Hero />
-      <About />
       <Services />
+      <About />
       <Contact />
     </div>
   );
