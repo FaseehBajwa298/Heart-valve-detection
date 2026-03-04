@@ -24,7 +24,7 @@ const Services = () => {
       )
     },
     {
-      title: "Patient Historyfuc",
+      title: "Patient History",
       description: "Allows storage and review of previous prediction records to help observe patterns or changes over time.",
       link: "/dashboard",
       icon: (
