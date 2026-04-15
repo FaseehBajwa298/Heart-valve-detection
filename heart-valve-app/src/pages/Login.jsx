@@ -5,13 +5,32 @@ import { useAuth } from '../context/AuthContext';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(email, password);
-    navigate('/dashboard');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Basic mock check
+      if (email && password.length >= 6) {
+        login(email, password);
+        navigate('/dashboard');
+      } else {
+        setError('Invalid email or password. (Password must be at least 6 characters)');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,15 +46,25 @@ const Login = () => {
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-600 text-sm flex items-center animate-shake">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
+        )}
+
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
             <div className="mt-1 relative">
               <input 
                 type="email" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900 disabled:bg-gray-50" 
                 placeholder="you@example.com" 
                 required
+                disabled={isLoading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -47,9 +76,10 @@ const Login = () => {
             <div className="mt-1 relative">
               <input 
                 type="password" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900 disabled:bg-gray-50" 
                 placeholder="••••••••" 
                 required
+                disabled={isLoading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -58,8 +88,8 @@ const Login = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <input id="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember me</label>
+              <input id="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">Remember me</label>
             </div>
             <div className="text-sm">
               <a href="#" className="font-medium text-blue-600 hover:text-blue-500">Forgot password?</a>
@@ -68,9 +98,19 @@ const Login = () => {
 
           <button 
             type="submit" 
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            disabled={isLoading}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-all duration-300 ${
+              isLoading 
+                ? 'bg-blue-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            }`}
           >
-            Sign In
+            {isLoading ? (
+              <div className="flex items-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Signing in...
+              </div>
+            ) : 'Sign In'}
           </button>
         </form>
 
