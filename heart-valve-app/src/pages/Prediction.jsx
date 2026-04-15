@@ -23,14 +23,34 @@ const Prediction = () => {
     
     // Simulate processing for 3 seconds
     setTimeout(() => {
-      setIsProcessing(false);
-      // Mock result
-      setResult({
+      // For demo purposes, we can have a random chance of abnormal result
+      const isAbnormal = Math.random() > 0.7;
+      
+      const newResult = isAbnormal ? {
+        condition: "Abnormal (Stenosis Detected)",
+        confidence: (85 + Math.random() * 10).toFixed(1) + "%",
+        heartRate: (80 + Math.floor(Math.random() * 20)) + " bpm",
+        recommendation: "Your ECG patterns show possible signs of valve narrowing. We strongly recommend consulting a cardiologist for a complete echocardiogram."
+      } : {
         condition: "Normal",
-        confidence: "98.5%",
-        heartRate: "72 bpm",
+        confidence: (95 + Math.random() * 4).toFixed(1) + "%",
+        heartRate: (65 + Math.floor(Math.random() * 15)) + " bpm",
         recommendation: "Your ECG results appear within normal range. Maintain a healthy lifestyle and regular checkups."
-      });
+      };
+      
+      setIsProcessing(false);
+      setResult(newResult);
+
+      // Save to History (Issue 2 persistence fix)
+      const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
+      const newHistoryEntry = {
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        heartRate: parseInt(newResult.heartRate),
+        prediction: newResult.condition.includes('Normal') ? 'Normal' : 'Abnormal',
+        confidence: newResult.confidence
+      };
+      localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
     }, 3000);
   };
 
