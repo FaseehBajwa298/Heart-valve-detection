@@ -31,8 +31,14 @@ const Register = () => {
       alert("Passwords do not match!");
       return;
     }
-    signup(formData.email, formData.password);
-    navigate('/');
+    
+    const response = signup(formData);
+    
+    if (response.success) {
+      navigate('/dashboard');
+    } else {
+      alert(response.message);
+    }
   };
 
   return (
