@@ -16,15 +16,15 @@ const Login = () => {
     setError('');
 
     try {
-      // Simulate API call
+      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Basic mock check
-      if (email && password.length >= 6) {
-        login(email, password);
+      const response = login(email, password);
+      
+      if (response.success) {
         navigate('/dashboard');
       } else {
-        setError('Invalid email or password. (Password must be at least 6 characters)');
+        setError(response.message);
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
