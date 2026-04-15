@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const History = () => {
-  // Initial state with some data
-  const [historyData, setHistoryData] = useState([
-    { id: 1, date: '2023-12-15', heartRate: 72, prediction: 'Normal', confidence: '98%' },
-    { id: 2, date: '2023-11-20', heartRate: 75, prediction: 'Low Risk', confidence: '85%' },
-    { id: 3, date: '2023-10-05', heartRate: 68, prediction: 'Normal', confidence: '99%' },
-  ]);
+  // Load data from localStorage on initial render
+  const [historyData, setHistoryData] = useState(() => {
+    const savedHistory = localStorage.getItem('patientHistory');
+    return savedHistory ? JSON.parse(savedHistory) : [
+      { id: 1, date: '2023-12-15', heartRate: 72, prediction: 'Normal', confidence: '98%' },
+      { id: 2, date: '2023-11-20', heartRate: 75, prediction: 'Low Risk', confidence: '85%' },
+      { id: 3, date: '2023-10-05', heartRate: 68, prediction: 'Normal', confidence: '99%' },
+    ];
+  });
+
+  // Save to localStorage whenever historyData changes
+  useEffect(() => {
+    localStorage.setItem('patientHistory', JSON.stringify(historyData));
+  }, [historyData]);
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this record?")) {
-      setHistoryData(historyData.filter(item => item.id !== id));
+      setHistoryData(prevData => prevData.filter(item => item.id !== id));
     }
   };
 
