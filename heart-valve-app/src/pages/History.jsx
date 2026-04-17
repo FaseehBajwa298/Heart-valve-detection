@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const History = () => {
-  // Load data from localStorage on initial render
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const [historyData, setHistoryData] = useState(() => {
     const savedHistory = localStorage.getItem('patientHistory');
     return savedHistory ? JSON.parse(savedHistory) : [
@@ -11,20 +15,71 @@ const History = () => {
     ];
   });
 
-  // Save to localStorage whenever historyData changes
   useEffect(() => {
     localStorage.setItem('patientHistory', JSON.stringify(historyData));
   }, [historyData]);
 
-  const handleDelete = (id) => {
+  useEffect(() => {
+    const loadFromApi = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      setError('');
+      try {
+        const res = await fetch('/api/history', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data?.message || 'Failed to load history');
+          return;
+        }
+        setHistoryData(
+          (data.items || []).map((item) => ({
+            id: item.id,
+            date: item.date,
+            heartRate: item.heartRate,
+            prediction: item.prediction,
+            confidence: item.confidence || '',
+          }))
+        );
+      } catch {
+        setError('Failed to load history');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadFromApi();
+  }, [token]);
+
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this record?")) {
-      setHistoryData(prevData => prevData.filter(item => item.id !== id));
+      setHistoryData((prevData) => prevData.filter((item) => item.id !== id));
+      if (token) {
+        try {
+          await fetch(`/api/history/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          setError('Failed to delete record from database');
+        }
+      }
     }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm("Are you sure you want to clear all history? This action cannot be undone.")) {
       setHistoryData([]);
+      if (token) {
+        try {
+          await fetch('/api/history', {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          setError('Failed to clear history from database');
+        }
+      }
     }
   };
 
@@ -36,7 +91,7 @@ const History = () => {
           <div className="w-20 h-1 bg-blue-500"></div>
         </div>
         
-        {historyData.length > 0 && (
+        {historyData.length > 0 && !isLoading && (
           <button 
             onClick={handleClearAll}
             className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center transition-colors"
@@ -56,8 +111,21 @@ const History = () => {
             {historyData.length} Records
           </span>
         </div>
+
+        {error && (
+          <div className="p-4 border-b border-gray-100 bg-red-50 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
         
-        {historyData.length > 0 ? (
+        {isLoading ? (
+          <div className="py-20 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-400 mb-4">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-gray-600">Loading history...</p>
+          </div>
+        ) : historyData.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -116,7 +184,7 @@ const History = () => {
         
         <div className="p-6 bg-gray-50 border-t border-gray-100">
           <p className="text-sm text-gray-500 text-center italic">
-            Records are stored locally for your convenience.
+            {token ? 'Records are stored in the database.' : 'Records are stored locally for your convenience.'}
           </p>
         </div>
       </div>
