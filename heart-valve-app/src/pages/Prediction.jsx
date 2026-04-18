@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Prediction = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const { token } = useAuth();
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -22,7 +24,7 @@ const Prediction = () => {
     setResult(null);
     
     // Simulate processing for 3 seconds
-    setTimeout(() => {
+    setTimeout(async () => {
       // For demo purposes, we can have a random chance of abnormal result
       const isAbnormal = Math.random() > 0.7;
       
@@ -41,16 +43,30 @@ const Prediction = () => {
       setIsProcessing(false);
       setResult(newResult);
 
-      // Save to History (Issue 2 persistence fix)
-      const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
-      const newHistoryEntry = {
-        id: Date.now(),
+      const entry = {
         date: new Date().toISOString().split('T')[0],
         heartRate: parseInt(newResult.heartRate),
         prediction: newResult.condition.includes('Normal') ? 'Normal' : 'Abnormal',
         confidence: newResult.confidence
       };
-      localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
+
+      if (token) {
+        try {
+          await fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(entry),
+          });
+        } catch {
+          const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
+          const newHistoryEntry = { ...entry, id: Date.now() };
+          localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
+        }
+      } else {
+        const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
+        const newHistoryEntry = { ...entry, id: Date.now() };
+        localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
+      }
     }, 3000);
   };
 
