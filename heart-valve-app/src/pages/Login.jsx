@@ -16,10 +16,7 @@ const Login = () => {
     setError('');
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const response = login(email, password);
+      const response = await login(email, password);
       
       if (response.success) {
         navigate('/dashboard');
