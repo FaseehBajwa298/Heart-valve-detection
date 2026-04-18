@@ -10,35 +10,37 @@ const Register = () => {
     password: '',
     confirmPassword: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.type === 'email' ? 'email' : e.target.type === 'password' && e.target.placeholder !== '••••••••' ? e.target.id === 'confirmPassword' ? 'confirmPassword' : 'password' : e.target.id || e.target.name]: e.target.value
-    });
-  };
 
   // Simplified handler for specific inputs since the previous logic was getting messy with unnamed inputs
   const handleInputChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match!");
+      setIsLoading(false);
       return;
     }
     
-    const response = signup(formData);
+    const response = await signup({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password
+    });
     
     if (response.success) {
       navigate('/dashboard');
     } else {
       alert(response.message);
     }
+    setIsLoading(false);
   };
 
   return (
@@ -120,9 +122,12 @@ const Register = () => {
 
           <button 
             type="submit" 
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            disabled={isLoading}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors ${
+              isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            }`}
           >
-            Create Account
+            {isLoading ? 'Creating...' : 'Create Account'}
           </button>
         </form>
 
