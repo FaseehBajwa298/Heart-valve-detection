@@ -61,6 +61,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeSection, setActiveSection] = useState('home');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,11 +104,15 @@ const Navbar = () => {
       : 'text-white hover:text-blue-100 px-4 py-2 rounded-sm transition-all duration-300';
   };
 
+  const closeMobileMenu = () => setIsMobileOpen(false);
+
   return (
     <nav className="sticky top-0 z-50 bg-[#4C9BF5] text-white px-4 py-4 md:px-12 flex justify-between items-center shadow-md">
       {/* Logo Section */}
       <div className="flex items-center gap-2">
-        <Logo />
+        <Link to="/" onClick={closeMobileMenu}>
+          <Logo />
+        </Link>
       </div>
 
       {/* Navigation Links */}
@@ -120,6 +125,16 @@ const Navbar = () => {
 
       {/* Right Section: Login / Dashboard */}
       <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen((prev) => !prev)}
+          className="md:hidden bg-transparent border-0 p-1 text-white"
+          aria-label="Toggle menu"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
+        </button>
         {user ? (
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="text-white hover:text-blue-100 font-medium">
@@ -147,6 +162,38 @@ const Navbar = () => {
           </Link>
         )}
       </div>
+
+      {isMobileOpen && (
+        <div className="absolute top-full left-0 right-0 md:hidden bg-[#4C9BF5] border-t border-blue-400 shadow-lg px-4 py-4 space-y-3">
+          <a href="/#home" onClick={closeMobileMenu} className="block text-white hover:text-blue-100">Home</a>
+          <a href="/#services" onClick={closeMobileMenu} className="block text-white hover:text-blue-100">Services</a>
+          <a href="/#about" onClick={closeMobileMenu} className="block text-white hover:text-blue-100">About Us</a>
+          <a href="/#contact" onClick={closeMobileMenu} className="block text-white hover:text-blue-100">Contact</a>
+          {user ? (
+            <>
+              <Link to="/dashboard" onClick={closeMobileMenu} className="block text-white hover:text-blue-100">Dashboard</Link>
+              <button
+                type="button"
+                onClick={() => {
+                  closeMobileMenu();
+                  handleLogout();
+                }}
+                className="w-full bg-white text-[#4C9BF5] hover:bg-gray-100 px-5 py-2 font-bold text-sm tracking-wide transition-colors rounded-sm"
+              >
+                LOGOUT
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              onClick={closeMobileMenu}
+              className="block w-full text-center bg-white text-[#4C9BF5] hover:bg-gray-100 px-5 py-2 font-bold text-sm tracking-wide transition-colors rounded-sm"
+            >
+              LOGIN
+            </Link>
+          )}
+        </div>
+      )}
     </nav>
   );
 };
