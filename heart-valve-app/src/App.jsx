@@ -41,6 +41,23 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const NotFound = () => {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="text-center">
+        <h1 className="text-5xl font-bold text-[#1a2e35] mb-3">404</h1>
+        <p className="text-gray-600 mb-6">Page not found.</p>
+        <a
+          href="/"
+          className="inline-flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Go to Home
+        </a>
+      </div>
+    </div>
+  );
+};
+
 // MainContent handles the routing and page transition animations
 const MainContent = () => {
   const location = useLocation();
@@ -74,6 +91,7 @@ const MainContent = () => {
               <History />
             </ProtectedRoute>
           } />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
 
