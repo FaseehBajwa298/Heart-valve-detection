@@ -5,69 +5,82 @@ const Prediction = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
   const { token } = useAuth();
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setSelectedFile(file);
     setResult(null);
+    setError('');
   };
 
-  const handleSubmit = (e) => {
+  const readSampleBase64 = async (file) => {
+    const slice = file.slice(0, 64 * 1024);
+    const buffer = await slice.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
       alert("Please select an ECG file to upload.");
       return;
     }
-    
+
     setIsProcessing(true);
     setResult(null);
-    
-    // Simulate processing for 3 seconds
-    setTimeout(async () => {
-      // For demo purposes, we can have a random chance of abnormal result
-      const isAbnormal = Math.random() > 0.7;
-      
-      const newResult = isAbnormal ? {
-        condition: "Abnormal (Stenosis Detected)",
-        confidence: (85 + Math.random() * 10).toFixed(1) + "%",
-        heartRate: (80 + Math.floor(Math.random() * 20)) + " bpm",
-        recommendation: "Your ECG patterns show possible signs of valve narrowing. We strongly recommend consulting a cardiologist for a complete echocardiogram."
-      } : {
-        condition: "Normal",
-        confidence: (95 + Math.random() * 4).toFixed(1) + "%",
-        heartRate: (65 + Math.floor(Math.random() * 15)) + " bpm",
-        recommendation: "Your ECG results appear within normal range. Maintain a healthy lifestyle and regular checkups."
-      };
-      
-      setIsProcessing(false);
-      setResult(newResult);
 
-      const entry = {
-        date: new Date().toISOString().split('T')[0],
-        heartRate: parseInt(newResult.heartRate),
-        prediction: newResult.condition.includes('Normal') ? 'Normal' : 'Abnormal',
-        confidence: newResult.confidence
-      };
-
-      if (token) {
-        try {
-          await fetch('/api/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(entry),
-          });
-        } catch {
-          const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
-          const newHistoryEntry = { ...entry, id: Date.now() };
-          localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
-        }
-      } else {
-        const storedHistory = JSON.parse(localStorage.getItem('patientHistory') || '[]');
-        const newHistoryEntry = { ...entry, id: Date.now() };
-        localStorage.setItem('patientHistory', JSON.stringify([newHistoryEntry, ...storedHistory]));
+    try {
+      const sampleBase64 = await readSampleBase64(selectedFile);
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          sampleBase64,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.message || 'Prediction failed');
+        return;
       }
-    }, 3000);
+      setResult(data.result);
+    } catch {
+      setError('Prediction failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!result) return;
+    const report = [
+      'HeartValve AI - ECG Prediction Report',
+      `Date: ${new Date().toLocaleString()}`,
+      `Condition: ${result.condition}`,
+      `Confidence: ${result.confidence}`,
+      `Heart Rate: ${result.heartRate}`,
+      `Recommendation: ${result.recommendation}`,
+    ].join('\n');
+
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `ecg-report-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -80,6 +93,12 @@ const Prediction = () => {
           <p className="text-gray-600 mb-8">
             Upload your ECG file below to assess the likelihood of heart valve disorders.
           </p>
+
+          {error && (
+            <div className="mb-6 p-3 rounded bg-red-50 border border-red-200 text-red-600 text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`border-2 border-dashed rounded-lg p-12 flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
@@ -182,9 +201,10 @@ const Prediction = () => {
                 Upload New File
               </button>
               <button
+                onClick={handleDownloadReport}
                 className="flex-1 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition shadow-lg"
               >
-                Download Report (PDF)
+                Download Report
               </button>
             </div>
           </div>
