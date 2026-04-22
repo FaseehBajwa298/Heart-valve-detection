@@ -120,7 +120,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => window.alert('Terms will be published soon.')}
-                className="text-blue-600 hover:text-blue-500"
+                className="bg-transparent p-0 border-0 rounded-none font-medium text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none"
               >
                 Terms
               </button>{' '}
@@ -128,7 +128,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => window.alert('Privacy policy will be published soon.')}
-                className="text-blue-600 hover:text-blue-500"
+                className="bg-transparent p-0 border-0 rounded-none font-medium text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none"
               >
                 Privacy Policy
               </button>

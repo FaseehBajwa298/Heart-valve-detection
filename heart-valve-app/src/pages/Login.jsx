@@ -308,7 +308,7 @@ const Login = () => {
                     setInfo('');
                     setMode('forgot');
                   }}
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="bg-transparent p-0 border-0 rounded-none font-medium text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none"
                 >
                   Forgot password?
                 </button>
