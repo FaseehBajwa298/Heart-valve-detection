@@ -83,6 +83,12 @@ const History = () => {
     }
   };
 
+  const handleViewDetails = (record) => {
+    window.alert(
+      `Date: ${record.date}\nHeart Rate: ${record.heartRate} bpm\nPrediction: ${record.prediction}\nConfidence: ${record.confidence || 'N/A'}`
+    );
+  };
+
   return (
     <div className="pt-24 pb-12 px-4 md:px-12 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -152,7 +158,12 @@ const History = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.confidence}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-3">
-                        <button className="text-blue-600 hover:text-blue-900 transition-colors">View Details</button>
+                        <button
+                          onClick={() => handleViewDetails(record)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                        >
+                          View Details
+                        </button>
                         <button 
                           onClick={() => handleDelete(record.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"

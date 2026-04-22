@@ -20,7 +20,12 @@ const apiFetch = async (path, options = {}) => {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { message: 'Unexpected server response' };
+  }
   if (!res.ok) {
     return { ok: false, status: res.status, data };
   }
