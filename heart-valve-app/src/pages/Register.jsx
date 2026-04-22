@@ -116,7 +116,22 @@ const Register = () => {
           <div className="flex items-center">
             <input id="agree-terms" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" required />
             <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-900">
-              I agree to the <a href="#" className="text-blue-600 hover:text-blue-500">Terms</a> and <a href="#" className="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+              I agree to the{' '}
+              <button
+                type="button"
+                onClick={() => window.alert('Terms will be published soon.')}
+                className="text-blue-600 hover:text-blue-500"
+              >
+                Terms
+              </button>{' '}
+              and{' '}
+              <button
+                type="button"
+                onClick={() => window.alert('Privacy policy will be published soon.')}
+                className="text-blue-600 hover:text-blue-500"
+              >
+                Privacy Policy
+              </button>
             </label>
           </div>
 
