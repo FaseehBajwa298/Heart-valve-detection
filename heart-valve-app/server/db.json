@@ -1,0 +1,85 @@
+{
+  "users": [
+    {
+      "email": "qa_1776850737740@test.com",
+      "passwordHash": "$2b$10$iWtnlKdFlcVkSvD3Mivbx.wuexvBsDTGuWZC8uGVfS39TD9fHxpRm",
+      "firstName": "QA",
+      "lastName": "User",
+      "createdAt": "2026-04-22"
+    },
+    {
+      "email": "qa_1776850826051@test.com",
+      "passwordHash": "$2b$10$JlfYGbVRLA8Sust47P8FbebfUNRGxO0gEWxsyn00BakhVbpDYN0Qe",
+      "firstName": "QA",
+      "lastName": "User",
+      "createdAt": "2026-04-22"
+    },
+    {
+      "email": "faseehbajwa786@gmail.com",
+      "passwordHash": "$2b$10$5Crc7jCJCUMKMrhsTx2GyetrJ2hx98BTfg3L9E3INmmZxKAjstCDm",
+      "firstName": "Faseeh",
+      "lastName": "Bajwa",
+      "createdAt": "2026-04-22"
+    },
+    {
+      "email": "qa_1776851857159@test.com",
+      "passwordHash": "$2b$10$69NEytCGShsGC5BIlZw6t.hNdLJrfs5.TZwLeC55McJpCBiKhKg8a",
+      "firstName": "QA",
+      "lastName": "User",
+      "createdAt": "2026-04-22"
+    },
+    {
+      "email": "qa_1776852259993@test.com",
+      "passwordHash": "$2b$10$LGF0nsk43/seb7EqTKkR1eGpj41c.wDNfXpvmONvgdYMETHmFTjhu",
+      "firstName": "QA",
+      "lastName": "User",
+      "createdAt": "2026-04-22"
+    },
+    {
+      "email": "qa_1776852330523@test.com",
+      "passwordHash": "$2b$10$JBxdeH.puqpYP7awiYMUu.aWbYoOOsVB/2BYgsecgRrjagezRt2.S",
+      "firstName": "QA",
+      "lastName": "User",
+      "createdAt": "2026-04-22"
+    }
+  ],
+  "history": [
+    {
+      "id": "5bb9953c-0a96-4fc9-99a9-c9a8b4c6574e",
+      "userEmail": "qa_1776851857159@test.com",
+      "date": "2026-04-22",
+      "heartRate": 75,
+      "prediction": "Normal",
+      "confidence": "97%",
+      "createdAt": "2026-04-22T09:57:37.888Z"
+    },
+    {
+      "id": "e53dca0d-09dd-4886-aa07-7d11fdff909b",
+      "userEmail": "qa_1776852259993@test.com",
+      "date": "2026-04-22",
+      "heartRate": 100,
+      "prediction": "Abnormal",
+      "confidence": "94.0%",
+      "createdAt": "2026-04-22T10:04:20.766Z"
+    },
+    {
+      "id": "fddbb4de-0ef5-4501-b4e6-61319df8af50",
+      "userEmail": "qa_1776852330523@test.com",
+      "date": "2026-04-22",
+      "heartRate": 100,
+      "prediction": "Abnormal",
+      "confidence": "94.0%",
+      "createdAt": "2026-04-22T10:05:31.219Z"
+    }
+  ],
+  "contacts": [
+    {
+      "id": "f7750ef6-809b-4783-bef1-d7cca80fe6b9",
+      "name": "QA User",
+      "email": "qa_1776852330523@test.com",
+      "subject": "Test",
+      "message": "Hello",
+      "createdAt": "2026-04-22T10:05:31.235Z"
+    }
+  ]
+}
