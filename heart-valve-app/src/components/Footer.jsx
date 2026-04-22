@@ -48,10 +48,10 @@ const Footer = () => {
         <FooterLogo />
 
         <div className="flex items-center gap-6 text-sm font-medium">
-          <a href="/#home" className="hover:text-blue-100 transition-colors">Home</a>
-          <a href="/#services" className="hover:text-blue-100 transition-colors">Services</a>
-          <a href="/#about" className="hover:text-blue-100 transition-colors">About</a>
-          <a href="/#contact" className="hover:text-blue-100 transition-colors">Contact</a>
+          <a href="/#home" className="text-white hover:text-blue-100 transition-colors">Home</a>
+          <a href="/#services" className="text-white hover:text-blue-100 transition-colors">Services</a>
+          <a href="/#about" className="text-white hover:text-blue-100 transition-colors">About</a>
+          <a href="/#contact" className="text-white hover:text-blue-100 transition-colors">Contact</a>
         </div>
 
         <div className="text-xs opacity-90">
