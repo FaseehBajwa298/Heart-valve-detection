@@ -7,6 +7,8 @@ const Contact = () => {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState({ type: '', message: '' });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,12 +18,28 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Form submitted:', formData);
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    setIsSubmitting(true);
+    setStatus({ type: '', message: '' });
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setStatus({ type: 'error', message: data?.message || 'Failed to send message' });
+        return;
+      }
+      setStatus({ type: 'success', message: 'Thank you for your message! We will get back to you soon.' });
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to send message' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -83,6 +101,17 @@ const Contact = () => {
           {/* Contact Form */}
           <div className="w-full md:w-2/3">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {status.message && (
+                <div
+                  className={
+                    status.type === 'success'
+                      ? 'p-3 rounded bg-green-50 border border-green-200 text-green-700 text-sm'
+                      : 'p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm'
+                  }
+                >
+                  {status.message}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
@@ -93,6 +122,7 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900"
                     placeholder="John Doe"
                   />
@@ -106,6 +136,7 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900"
                     placeholder="john@example.com"
                   />
@@ -121,6 +152,7 @@ const Contact = () => {
                   value={formData.subject}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900"
                   placeholder="How can we help?"
                 />
@@ -135,6 +167,7 @@ const Contact = () => {
                   onChange={handleChange}
                   required
                   rows="5"
+                  disabled={isSubmitting}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none bg-white text-gray-900"
                   placeholder="Write your message here..."
                 ></textarea>
@@ -142,9 +175,12 @@ const Contact = () => {
 
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition duration-300 w-full md:w-auto"
+                disabled={isSubmitting}
+                className={`px-8 py-3 rounded-lg font-bold transition duration-300 w-full md:w-auto ${
+                  isSubmitting ? 'bg-blue-400 cursor-not-allowed text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>
