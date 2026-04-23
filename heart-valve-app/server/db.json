@@ -41,6 +41,20 @@
       "firstName": "QA",
       "lastName": "User",
       "createdAt": "2026-04-22"
+    },
+    {
+      "email": "test_f720527b@a.com",
+      "passwordHash": "$2b$10$vlqxEwly0vzkNEF2VXs7SuIQXoLUSgJXN8PZok0lRR.G73mxogrrO",
+      "firstName": "T",
+      "lastName": "U",
+      "createdAt": "2026-04-23"
+    },
+    {
+      "email": "t_6f98de15@a.com",
+      "passwordHash": "$2b$10$FGCU4MRgtuz8zvcI8igKfuoM05.J2Cx0QCFgyAu7YVMZTh4Amcnui",
+      "firstName": "A",
+      "lastName": "B",
+      "createdAt": "2026-04-23"
     }
   ],
   "history": [
@@ -70,6 +84,69 @@
       "prediction": "Abnormal",
       "confidence": "94.0%",
       "createdAt": "2026-04-22T10:05:31.219Z"
+    },
+    {
+      "id": "5b2ce024-773b-4cf1-8626-20a606e9efba",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "31.5%",
+      "createdAt": "2026-04-23T15:14:48.361Z"
+    },
+    {
+      "id": "c7417f23-c0a9-426a-a48d-a2552d5a8a37",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "69.3%",
+      "createdAt": "2026-04-23T15:17:28.395Z"
+    },
+    {
+      "id": "a4835f04-8720-4112-9bde-5b8403931b05",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "69.3%",
+      "createdAt": "2026-04-23T15:23:33.262Z"
+    },
+    {
+      "id": "7557c821-c7da-47db-bb1f-09b408676981",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "69.3%",
+      "createdAt": "2026-04-23T15:28:53.891Z"
+    },
+    {
+      "id": "eae74147-b69d-4997-8386-1b29880d2cc7",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "69.3%",
+      "createdAt": "2026-04-23T18:22:06.136Z"
+    },
+    {
+      "id": "74e64382-3f9c-4f72-94a4-754876f1e611",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "78.2%",
+      "createdAt": "2026-04-23T18:27:14.298Z"
+    },
+    {
+      "id": "ccf42114-b6d5-4c07-93e3-af71319bdf2f",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-23",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "42.1%",
+      "createdAt": "2026-04-23T18:30:31.284Z"
     }
   ],
   "contacts": [
