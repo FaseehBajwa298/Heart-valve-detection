@@ -43,19 +43,32 @@ const Footer = () => {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#4C9BF5] text-white">
-      <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
-        <FooterLogo />
+    <footer className="bg-slate-950 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-sm">
+            <FooterLogo />
+            <p className="mt-4 text-sm text-slate-300 leading-relaxed">
+              ECG-based prediction workflow for research and educational demonstrations.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-6 text-sm font-medium">
-          <a href="/#home" className="text-white hover:text-blue-100 transition-colors">Home</a>
-          <a href="/#services" className="text-white hover:text-blue-100 transition-colors">Services</a>
-          <a href="/#about" className="text-white hover:text-blue-100 transition-colors">About</a>
-          <a href="/#contact" className="text-white hover:text-blue-100 transition-colors">Contact</a>
+          <div className="grid grid-cols-2 gap-10 text-sm md:grid-cols-1">
+            <div>
+              <div className="font-bold text-white">Quick Links</div>
+              <div className="mt-4 grid gap-3">
+                <a href="/#home" className="text-slate-300 hover:text-white transition-colors">Home</a>
+                <a href="/#services" className="text-slate-300 hover:text-white transition-colors">Services</a>
+                <a href="/#about" className="text-slate-300 hover:text-white transition-colors">About</a>
+                <a href="/#contact" className="text-slate-300 hover:text-white transition-colors">Contact</a>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="text-xs opacity-90">
-          © {year} HeartValve AI
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
+          <div>© {year} HeartValve AI</div>
+          <div>Built for academic use</div>
         </div>
       </div>
     </footer>
