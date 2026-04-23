@@ -1,5 +1,28 @@
 import React, { useState } from 'react';
+import { jsPDF } from 'jspdf';
 import { useAuth } from '../context/AuthContext';
+
+const LABEL_DISPLAY = {
+  lvef_lte_45_flag: 'Reduced LVEF (≤45%)',
+  lvwt_gte_13_flag: 'Increased LV Wall Thickness (≥13mm)',
+  aortic_stenosis_moderate_or_greater_flag: 'Aortic Stenosis (Moderate+)',
+  aortic_regurgitation_moderate_or_greater_flag: 'Aortic Regurgitation (Moderate+)',
+  mitral_regurgitation_moderate_or_greater_flag: 'Mitral Regurgitation (Moderate+)',
+  tricuspid_regurgitation_moderate_or_greater_flag: 'Tricuspid Regurgitation (Moderate+)',
+  pulmonary_regurgitation_moderate_or_greater_flag: 'Pulmonary Regurgitation (Moderate+)',
+  rv_systolic_dysfunction_moderate_or_greater_flag: 'RV Systolic Dysfunction (Moderate+)',
+  pericardial_effusion_moderate_large_flag: 'Pericardial Effusion (Moderate/Large)',
+  pasp_gte_45_flag: 'PASP ≥45 mmHg',
+  tr_max_gte_32_flag: 'TR Max ≥3.2 m/s',
+  shd_moderate_or_greater_flag: 'Structural Heart Disease (Moderate+)',
+};
+
+const formatPercent = (value) => {
+  const num = Number(value);
+  if (Number.isNaN(num)) return String(value || '');
+  const pct = num > 1 ? num : num * 100;
+  return `${pct.toFixed(1)}%`;
+};
 
 const Prediction = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -16,8 +39,7 @@ const Prediction = () => {
   };
 
   const readSampleBase64 = async (file) => {
-    const slice = file.slice(0, 64 * 1024);
-    const buffer = await slice.arrayBuffer();
+    const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     const chunkSize = 0x8000;
     let binary = '';
@@ -36,8 +58,13 @@ const Prediction = () => {
 
     setIsProcessing(true);
     setResult(null);
+    setError('');
 
     try {
+      if (!selectedFile.name.toLowerCase().endsWith('.npy')) {
+        setError('Only .npy ECG files are supported for model prediction right now.');
+        return;
+      }
       const sampleBase64 = await readSampleBase64(selectedFile);
       const res = await fetch('/api/predict', {
         method: 'POST',
@@ -50,7 +77,9 @@ const Prediction = () => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.message || 'Prediction failed');
+        const message = data?.message || 'Prediction failed';
+        const detail = data?.detail ? `: ${data.detail}` : '';
+        setError(`${message}${detail}`);
         return;
       }
       setResult(data.result);
@@ -63,24 +92,93 @@ const Prediction = () => {
 
   const handleDownloadReport = () => {
     if (!result) return;
-    const report = [
-      'HeartValve AI - ECG Prediction Report',
-      `Date: ${new Date().toLocaleString()}`,
-      `Condition: ${result.condition}`,
-      `Confidence: ${result.confidence}`,
-      `Heart Rate: ${result.heartRate}`,
-      `Recommendation: ${result.recommendation}`,
-    ].join('\n');
-
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `ecg-report-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    
+    const doc = new jsPDF();
+    const dateStr = new Date().toLocaleString();
+    
+    // Header
+    doc.setFillColor(59, 130, 246); // Blue-600
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('HeartValve AI - Prediction Report', 20, 25);
+    
+    // Report Info
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Report Date: ${dateStr}`, 20, 50);
+    doc.text(`File Name: ${selectedFile?.name || 'N/A'}`, 20, 55);
+    
+    // Main Result Box
+    doc.setDrawColor(230, 230, 230);
+    doc.setFillColor(249, 250, 251); // gray-50
+    doc.roundedRect(20, 65, 170, 40, 3, 3, 'FD');
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text('CONDITION RESULT', 30, 75);
+    
+    doc.setFontSize(24);
+    if (result.condition === 'Normal') {
+      doc.setTextColor(22, 163, 74); // green-600
+    } else {
+      doc.setTextColor(220, 38, 38); // red-600
+    }
+    doc.text(result.condition, 30, 90);
+    
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(10);
+    doc.text('Confidence:', 130, 75);
+    doc.setFontSize(14);
+    doc.text(result.confidence, 130, 85);
+    
+    doc.setFontSize(10);
+    doc.text('Heart Rate:', 130, 95);
+    doc.setFontSize(14);
+    doc.text(result.heartRate || '—', 130, 105);
+    
+    // Recommendation
+    doc.setFontSize(12);
+    doc.setTextColor(30, 58, 138); // blue-900
+    doc.setFont('helvetica', 'bold');
+    doc.text('Professional Recommendation:', 20, 125);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(75, 85, 99); // gray-600
+    doc.setFont('helvetica', 'normal');
+    const splitRecommendation = doc.splitTextToSize(result.recommendation, 170);
+    doc.text(splitRecommendation, 20, 135);
+    
+    // Detected Conditions
+    if (Array.isArray(result.topLabels) && result.topLabels.length > 0) {
+      let yPos = 160;
+      doc.setFontSize(12);
+      doc.setTextColor(31, 41, 55); // gray-800
+      doc.setFont('helvetica', 'bold');
+      doc.text('Detected Conditions:', 20, yPos);
+      
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      result.topLabels.slice(0, 8).forEach((item) => {
+        const name = item.name || LABEL_DISPLAY[item.label] || item.label;
+        const conf = item.confidence || formatPercent(item.probability);
+        doc.text(name, 25, yPos);
+        doc.text(conf, 160, yPos);
+        yPos += 7;
+      });
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Note: This is an AI-generated prediction and should not replace professional medical advice.', 105, 285, { align: 'center' });
+    
+    doc.save(`ecg-report-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   return (
@@ -176,7 +274,7 @@ const Prediction = () => {
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-500 font-semibold mb-1">Heart Rate</p>
-                  <p className="text-xl font-bold text-gray-800">{result.heartRate}</p>
+                  <p className="text-xl font-bold text-gray-800">{result.heartRate || '—'}</p>
                 </div>
               </div>
             </div>
@@ -192,6 +290,24 @@ const Prediction = () => {
                 {result.recommendation}
               </p>
             </div>
+
+            {Array.isArray(result.topLabels) && result.topLabels.length > 0 && (
+              <div className="bg-white rounded-lg p-6 mb-8 border border-gray-100">
+                <h4 className="font-bold text-gray-800 mb-3">Detected Conditions</h4>
+                <div className="space-y-2">
+                  {result.topLabels.slice(0, 5).map((item) => (
+                    <div key={item.label || item.name} className="flex items-center justify-between gap-4">
+                      <div className="text-sm font-semibold text-gray-800">
+                        {item.name || LABEL_DISPLAY[item.label] || item.label}
+                      </div>
+                      <div className="text-sm font-bold text-blue-700">
+                        {item.confidence || formatPercent(item.probability)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
