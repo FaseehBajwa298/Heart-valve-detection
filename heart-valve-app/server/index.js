@@ -2,10 +2,12 @@ import cors from 'cors';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
+import { spawn } from 'child_process';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import { fileURLToPath } from 'url';
+import path from 'path';
 
 const PORT = Number(process.env.PORT || 3001);
 const isProd = process.env.NODE_ENV === 'production';
@@ -34,7 +36,7 @@ if (isProd) {
   app.use(cors());
 }
 
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '30mb' }));
 
 const dbFilePath = fileURLToPath(new URL('./db.json', import.meta.url));
 const adapter = new JSONFile(dbFilePath);
@@ -103,32 +105,80 @@ const predictLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
-const buildPredictionResult = ({ fileName, fileSize, sampleBase64 }) => {
-  const sampleBuf = Buffer.from(sampleBase64 || '', 'base64');
-  const hash = createHash('sha256').update(sampleBuf).update(String(fileName || '')).update(String(fileSize || 0)).digest();
-  const score = hash[0] / 255;
-  const isAbnormal = score >= 0.55;
-  const confidence = isAbnormal ? 85 + Math.round(score * 10) : 92 + Math.round((1 - score) * 7);
-  const hr = 62 + (hash[1] % 55);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const MODEL_DIR = path.join(__dirname, 'models');
+const PYTHON_PREDICT_SCRIPT = path.join(MODEL_DIR, 'predict_pytorch.py');
 
-  if (isAbnormal) {
-    return {
-      condition: 'Abnormal (Stenosis Detected)',
-      prediction: 'Abnormal',
-      confidence: `${Math.min(99.9, confidence).toFixed(1)}%`,
-      heartRate: `${hr} bpm`,
-      recommendation:
-        'Your ECG patterns show possible signs of valve narrowing. We strongly recommend consulting a cardiologist for a complete echocardiogram.',
-    };
-  }
+const LABEL_DISPLAY = {
+  lvef_lte_45_flag: 'Reduced LVEF (≤45%)',
+  lvwt_gte_13_flag: 'Increased LV Wall Thickness (≥13mm)',
+  aortic_stenosis_moderate_or_greater_flag: 'Aortic Stenosis (Moderate+)',
+  aortic_regurgitation_moderate_or_greater_flag: 'Aortic Regurgitation (Moderate+)',
+  mitral_regurgitation_moderate_or_greater_flag: 'Mitral Regurgitation (Moderate+)',
+  tricuspid_regurgitation_moderate_or_greater_flag: 'Tricuspid Regurgitation (Moderate+)',
+  pulmonary_regurgitation_moderate_or_greater_flag: 'Pulmonary Regurgitation (Moderate+)',
+  rv_systolic_dysfunction_moderate_or_greater_flag: 'RV Systolic Dysfunction (Moderate+)',
+  pericardial_effusion_moderate_large_flag: 'Pericardial Effusion (Moderate/Large)',
+  pasp_gte_45_flag: 'PASP ≥45 mmHg',
+  tr_max_gte_32_flag: 'TR Max ≥3.2 m/s',
+  shd_moderate_or_greater_flag: 'Structural Heart Disease (Moderate+)',
+};
 
-  return {
-    condition: 'Normal',
-    prediction: 'Normal',
-    confidence: `${Math.min(99.9, confidence).toFixed(1)}%`,
-    heartRate: `${hr} bpm`,
-    recommendation: 'Your ECG results appear within normal range. Maintain a healthy lifestyle and regular checkups.',
-  };
+const formatPercent = (value) => `${(Math.max(0, Math.min(1, Number(value) || 0)) * 100).toFixed(1)}%`;
+
+const getTopCondition = (topLabels) => {
+  const candidates = (topLabels || []).filter((l) => l?.label && l.label !== 'shd_moderate_or_greater_flag');
+  if (candidates.length === 0) return null;
+  const top = candidates[0];
+  const name = LABEL_DISPLAY[top.label] || top.label;
+  const prob = Number(top.probability ?? 0);
+  return { label: top.label, name, probability: prob };
+};
+
+const formatTopLabels = (topLabels) => {
+  return (topLabels || []).map((l) => ({
+    label: l?.label,
+    name: LABEL_DISPLAY[l?.label] || l?.label,
+    probability: Number(l?.probability ?? 0),
+    confidence: formatPercent(l?.probability),
+  }));
+};
+
+const runPythonPredict = (payload) => {
+  return new Promise((resolve, reject) => {
+    const python = spawn('python', [PYTHON_PREDICT_SCRIPT], {
+      cwd: __dirname,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    python.stdout.on('data', (chunk) => {
+      stdout += chunk.toString('utf8');
+    });
+    python.stderr.on('data', (chunk) => {
+      stderr += chunk.toString('utf8');
+    });
+    python.on('error', (err) => {
+      reject(err);
+    });
+    python.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || stdout || `Python exited with code ${code}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout);
+        resolve(parsed);
+      } catch (err) {
+        reject(new Error(`Invalid Python output. ${err?.message || err}`));
+      }
+    });
+
+    python.stdin.write(JSON.stringify(payload));
+    python.stdin.end();
+  });
 };
 
 app.get('/api/health', (req, res) => {
@@ -285,12 +335,43 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     return;
   }
 
-  const result = buildPredictionResult({ fileName, fileSize, sampleBase64 });
+  if (Number(fileSize) > 20 * 1024 * 1024) {
+    res.status(413).json({ message: 'File too large. Please upload a smaller ECG file.' });
+    return;
+  }
+
+  let prediction;
+  try {
+    prediction = await runPythonPredict({ fileName, fileSize, fileBase64: sampleBase64 });
+  } catch (err) {
+    res.status(500).json({ message: 'Prediction service unavailable', detail: err?.message || String(err) });
+    return;
+  }
+
+  const shdProb = Number(prediction?.shd_probability ?? 0);
+  const isAbnormal = shdProb >= 0.5;
+  const confidence = Math.min(99.9, Math.max(0, shdProb * 100)).toFixed(1);
+  const topLabels = formatTopLabels(prediction?.top_labels || []);
+  const primary = getTopCondition(prediction?.top_labels || []);
+  const conditionName = isAbnormal ? (primary?.name || 'Abnormal') : 'Normal';
+  const result = {
+    condition: conditionName,
+    prediction: isAbnormal ? 'Abnormal' : 'Normal',
+    confidence: `${confidence}%`,
+    heartRate: null,
+    recommendation: isAbnormal
+      ? `Possible indicators detected${primary?.name ? ` (${primary.name})` : ''}. Please consult a cardiologist for further evaluation.`
+      : 'No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.',
+    primaryCondition: primary,
+    topLabels,
+    probabilities: prediction?.probabilities || {},
+  };
   const entry = {
     date: nowIsoDate(),
-    heartRate: parseInt(result.heartRate, 10),
+    heartRate: result.heartRate || 0,
     prediction: result.prediction,
     confidence: result.confidence,
+    result: result, // Store the full result object for detailed report view
   };
 
   await readDb();
