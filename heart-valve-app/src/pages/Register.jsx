@@ -38,7 +38,7 @@ const Register = () => {
     });
     
     if (response.success) {
-      navigate('/dashboard');
+      navigate('/');
     } else {
       alert(response.message);
     }

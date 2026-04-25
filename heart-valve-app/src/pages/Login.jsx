@@ -43,7 +43,7 @@ const Login = () => {
       const response = await login(email, password);
       
       if (response.success) {
-        navigate('/dashboard');
+        navigate('/');
       } else {
         setError(response.message);
       }

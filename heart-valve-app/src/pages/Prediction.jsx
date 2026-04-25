@@ -26,6 +26,7 @@ const formatPercent = (value) => {
 
 const Prediction = () => {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [tabularFile, setTabularFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -34,6 +35,13 @@ const Prediction = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setSelectedFile(file);
+    setResult(null);
+    setError('');
+  };
+
+  const handleTabularChange = (e) => {
+    const file = e.target.files[0];
+    setTabularFile(file);
     setResult(null);
     setError('');
   };
@@ -55,6 +63,10 @@ const Prediction = () => {
       alert("Please select an ECG file to upload.");
       return;
     }
+    if (!tabularFile) {
+      alert("Please select a tabular .npy file to upload.");
+      return;
+    }
 
     setIsProcessing(true);
     setResult(null);
@@ -65,7 +77,12 @@ const Prediction = () => {
         setError('Only .npy ECG files are supported for model prediction right now.');
         return;
       }
+      if (!tabularFile.name.toLowerCase().endsWith('.npy')) {
+        setError('Only .npy tabular files are supported for model prediction right now.');
+        return;
+      }
       const sampleBase64 = await readSampleBase64(selectedFile);
+      const tabFileBase64 = await readSampleBase64(tabularFile);
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -73,6 +90,9 @@ const Prediction = () => {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
           sampleBase64,
+          tabFileName: tabularFile.name,
+          tabFileSize: tabularFile.size,
+          tabFileBase64,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -239,11 +259,33 @@ const Prediction = () => {
               </div>
             </div>
 
+            <div className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
+              isProcessing ? 'bg-gray-100 border-gray-200 pointer-events-none' : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+            }`}>
+              <input
+                type="file"
+                id="tabularFile"
+                name="tabularFile"
+                accept=".npy"
+                onChange={handleTabularChange}
+                disabled={isProcessing}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">
+                  {tabularFile ? tabularFile.name : 'Click to Upload Tabular .npy File'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {tabularFile ? `${(tabularFile.size / 1024).toFixed(2)} KB` : 'Required (7 tabular features)'}
+                </p>
+              </div>
+            </div>
+
             <button
               type="submit"
-              disabled={isProcessing || !selectedFile}
+              disabled={isProcessing || !selectedFile || !tabularFile}
               className={`w-full font-bold py-3 px-6 rounded-lg transition duration-300 mt-6 ${
-                isProcessing || !selectedFile 
+                isProcessing || !selectedFile || !tabularFile
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
