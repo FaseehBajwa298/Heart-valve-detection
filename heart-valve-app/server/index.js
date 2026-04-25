@@ -307,6 +307,21 @@ const LABEL_DISPLAY = {
   shd_moderate_or_greater_flag: 'Structural Heart Disease (Moderate+)',
 };
 
+const DISEASE_THRESHOLDS = {
+  lvef_lte_45_flag: 0.266,
+  lvwt_gte_13_flag: 0.319,
+  aortic_stenosis_moderate_or_greater_flag: 0.309,
+  aortic_regurgitation_moderate_or_greater_flag: 0.061,
+  mitral_regurgitation_moderate_or_greater_flag: 0.238,
+  tricuspid_regurgitation_moderate_or_greater_flag: 0.22,
+  pulmonary_regurgitation_moderate_or_greater_flag: 0.044,
+  rv_systolic_dysfunction_moderate_or_greater_flag: 0.177,
+  pericardial_effusion_moderate_large_flag: 0.053,
+  pasp_gte_45_flag: 0.273,
+  tr_max_gte_32_flag: 0.242,
+  shd_moderate_or_greater_flag: 0.512,
+};
+
 const formatPercent = (value) => `${(Math.max(0, Math.min(1, Number(value) || 0)) * 100).toFixed(1)}%`;
 
 const getTopCondition = (topLabels) => {
@@ -324,6 +339,11 @@ const formatTopLabels = (topLabels) => {
     name: LABEL_DISPLAY[l?.label] || l?.label,
     probability: Number(l?.probability ?? 0),
     confidence: formatPercent(l?.probability),
+    threshold: typeof DISEASE_THRESHOLDS[l?.label] === 'number' ? DISEASE_THRESHOLDS[l?.label] : null,
+    isPositive:
+      typeof DISEASE_THRESHOLDS[l?.label] === 'number'
+        ? Number(l?.probability ?? 0) >= DISEASE_THRESHOLDS[l?.label]
+        : null,
   }));
 };
 
@@ -602,9 +622,13 @@ app.post('/api/history', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
-  const { fileName, fileSize, sampleBase64 } = req.body || {};
+  const { fileName, fileSize, sampleBase64, tabFileName, tabFileSize, tabFileBase64 } = req.body || {};
   if (!fileName || !fileSize || !sampleBase64) {
     res.status(400).json({ message: 'fileName, fileSize, sampleBase64 are required' });
+    return;
+  }
+  if (!tabFileName || !tabFileSize || !tabFileBase64) {
+    res.status(400).json({ message: 'tabFileName, tabFileSize, tabFileBase64 are required' });
     return;
   }
 
@@ -612,21 +636,49 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     res.status(413).json({ message: 'File too large. Please upload a smaller ECG file.' });
     return;
   }
+  if (Number(tabFileSize) > 2 * 1024 * 1024) {
+    res.status(413).json({ message: 'Tabular file too large. Please upload a smaller .npy file.' });
+    return;
+  }
 
   let prediction;
   try {
-    prediction = await runPythonPredict({ fileName, fileSize, fileBase64: sampleBase64 });
+    prediction = await runPythonPredict({
+      fileName,
+      fileSize,
+      fileBase64: sampleBase64,
+      tabFileName,
+      tabFileSize,
+      tabFileBase64,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Prediction service unavailable', detail: err?.message || String(err) });
     return;
   }
 
   const shdProb = Number(prediction?.shd_probability ?? 0);
-  const isAbnormal = shdProb >= 0.5;
+  const shdThreshold = Number(DISEASE_THRESHOLDS.shd_moderate_or_greater_flag ?? 0.5);
+  const isAbnormal = shdProb >= shdThreshold;
   const confidence = Math.min(99.9, Math.max(0, shdProb * 100)).toFixed(1);
   const topLabels = formatTopLabels(prediction?.top_labels || []);
   const primary = getTopCondition(prediction?.top_labels || []);
   const conditionName = isAbnormal ? (primary?.name || 'Abnormal') : 'Normal';
+  const probabilities = prediction?.probabilities || {};
+  const flags = Object.fromEntries(
+    Object.entries(DISEASE_THRESHOLDS).map(([label, thr]) => [
+      label,
+      Number(probabilities?.[label] ?? 0) >= Number(thr),
+    ])
+  );
+  const positiveLabels = Object.entries(flags)
+    .filter(([, v]) => Boolean(v))
+    .map(([label]) => ({
+      label,
+      name: LABEL_DISPLAY[label] || label,
+      probability: Number(probabilities?.[label] ?? 0),
+      threshold: Number(DISEASE_THRESHOLDS[label] ?? 0),
+    }))
+    .sort((a, b) => b.probability - a.probability);
   const result = {
     condition: conditionName,
     prediction: isAbnormal ? 'Abnormal' : 'Normal',
@@ -637,7 +689,10 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
       : 'No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.',
     primaryCondition: primary,
     topLabels,
-    probabilities: prediction?.probabilities || {},
+    thresholds: DISEASE_THRESHOLDS,
+    flags,
+    positiveLabels,
+    probabilities,
   };
   const entry = {
     date: nowIsoDate(),

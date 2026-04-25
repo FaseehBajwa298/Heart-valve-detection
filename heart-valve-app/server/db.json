@@ -556,6 +556,787 @@
         }
       },
       "createdAt": "2026-04-24T15:42:21.744Z"
+    },
+    {
+      "id": "b1f69e68-46ad-4131-9c50-5e796d29ef61",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "88.1%",
+      "result": {
+        "condition": "Reduced LVEF (≤45%)",
+        "prediction": "Abnormal",
+        "confidence": "88.1%",
+        "heartRate": null,
+        "recommendation": "Possible indicators detected (Reduced LVEF (≤45%)). Please consult a cardiologist for further evaluation.",
+        "primaryCondition": {
+          "label": "lvef_lte_45_flag",
+          "name": "Reduced LVEF (≤45%)",
+          "probability": 0.8495477437973022
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.8810685873031616,
+            "confidence": "88.1%"
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8495477437973022,
+            "confidence": "85.0%"
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.6989225745201111,
+            "confidence": "69.9%"
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.5367435812950134,
+            "confidence": "53.7%"
+          },
+          {
+            "label": "tricuspid_regurgitation_moderate_or_greater_flag",
+            "name": "Tricuspid Regurgitation (Moderate+)",
+            "probability": 0.3381299078464508,
+            "confidence": "33.8%"
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.8495477437973022,
+          "lvwt_gte_13_flag": 0.5367435812950134,
+          "aortic_stenosis_moderate_or_greater_flag": 0.022520985454320908,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.09622173756361008,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.2988002896308899,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.3381299078464508,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.08044327795505524,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.6989225745201111,
+          "pericardial_effusion_moderate_large_flag": 0.16543935239315033,
+          "pasp_gte_45_flag": 0.26599493622779846,
+          "tr_max_gte_32_flag": 0.15971967577934265,
+          "shd_moderate_or_greater_flag": 0.8810685873031616
+        }
+      },
+      "createdAt": "2026-04-25T12:35:37.736Z"
+    },
+    {
+      "id": "13204cfd-7859-4ea7-b946-12908d93f3cf",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "23.7%",
+      "result": {
+        "condition": "Normal",
+        "prediction": "Normal",
+        "confidence": "23.7%",
+        "heartRate": null,
+        "recommendation": "No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.",
+        "primaryCondition": {
+          "label": "lvwt_gte_13_flag",
+          "name": "Increased LV Wall Thickness (≥13mm)",
+          "probability": 0.20320263504981995
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.23686692118644714,
+            "confidence": "23.7%"
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.20320263504981995,
+            "confidence": "20.3%"
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.1025153174996376,
+            "confidence": "10.3%"
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.07834520936012268,
+            "confidence": "7.8%"
+          },
+          {
+            "label": "tr_max_gte_32_flag",
+            "name": "TR Max ≥3.2 m/s",
+            "probability": 0.04575025662779808,
+            "confidence": "4.6%"
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.1025153174996376,
+          "lvwt_gte_13_flag": 0.20320263504981995,
+          "aortic_stenosis_moderate_or_greater_flag": 0.029825162142515182,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.012714426964521408,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.03233737871050835,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.024214915931224823,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.0008046285947784781,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.0373271107673645,
+          "pericardial_effusion_moderate_large_flag": 0.04044298455119133,
+          "pasp_gte_45_flag": 0.07834520936012268,
+          "tr_max_gte_32_flag": 0.04575025662779808,
+          "shd_moderate_or_greater_flag": 0.23686692118644714
+        }
+      },
+      "createdAt": "2026-04-25T12:39:23.006Z"
+    },
+    {
+      "id": "7f839bed-f959-4387-9e0d-cac6c756bed6",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "44.9%",
+      "result": {
+        "condition": "Normal",
+        "prediction": "Normal",
+        "confidence": "44.9%",
+        "heartRate": null,
+        "recommendation": "No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.",
+        "primaryCondition": {
+          "label": "lvwt_gte_13_flag",
+          "name": "Increased LV Wall Thickness (≥13mm)",
+          "probability": 0.3191078305244446
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.4493374824523926,
+            "confidence": "44.9%"
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.3191078305244446,
+            "confidence": "31.9%"
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.29355180263519287,
+            "confidence": "29.4%"
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.18668928742408752,
+            "confidence": "18.7%"
+          },
+          {
+            "label": "tr_max_gte_32_flag",
+            "name": "TR Max ≥3.2 m/s",
+            "probability": 0.12585857510566711,
+            "confidence": "12.6%"
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.29355180263519287,
+          "lvwt_gte_13_flag": 0.3191078305244446,
+          "aortic_stenosis_moderate_or_greater_flag": 0.009169098921120167,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.022385861724615097,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.08745880424976349,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.07110637426376343,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.0042406790889799595,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.11468013375997543,
+          "pericardial_effusion_moderate_large_flag": 0.0815703272819519,
+          "pasp_gte_45_flag": 0.18668928742408752,
+          "tr_max_gte_32_flag": 0.12585857510566711,
+          "shd_moderate_or_greater_flag": 0.4493374824523926
+        }
+      },
+      "createdAt": "2026-04-25T12:40:36.363Z"
+    },
+    {
+      "id": "6aeb0efa-714d-4d75-9456-daf14f80610a",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "23.7%",
+      "result": {
+        "condition": "Normal",
+        "prediction": "Normal",
+        "confidence": "23.7%",
+        "heartRate": null,
+        "recommendation": "No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.",
+        "primaryCondition": {
+          "label": "lvwt_gte_13_flag",
+          "name": "Increased LV Wall Thickness (≥13mm)",
+          "probability": 0.20320263504981995
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.23686692118644714,
+            "confidence": "23.7%"
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.20320263504981995,
+            "confidence": "20.3%"
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.1025153174996376,
+            "confidence": "10.3%"
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.07834520936012268,
+            "confidence": "7.8%"
+          },
+          {
+            "label": "tr_max_gte_32_flag",
+            "name": "TR Max ≥3.2 m/s",
+            "probability": 0.04575025662779808,
+            "confidence": "4.6%"
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.1025153174996376,
+          "lvwt_gte_13_flag": 0.20320263504981995,
+          "aortic_stenosis_moderate_or_greater_flag": 0.029825162142515182,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.012714426964521408,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.03233737871050835,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.024214915931224823,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.0008046285947784781,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.0373271107673645,
+          "pericardial_effusion_moderate_large_flag": 0.04044298455119133,
+          "pasp_gte_45_flag": 0.07834520936012268,
+          "tr_max_gte_32_flag": 0.04575025662779808,
+          "shd_moderate_or_greater_flag": 0.23686692118644714
+        }
+      },
+      "createdAt": "2026-04-25T12:43:17.430Z"
+    },
+    {
+      "id": "a5a0a5bb-f83d-4b9f-8d6b-16607a36fa0d",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "88.1%",
+      "result": {
+        "condition": "Reduced LVEF (≤45%)",
+        "prediction": "Abnormal",
+        "confidence": "88.1%",
+        "heartRate": null,
+        "recommendation": "Possible indicators detected (Reduced LVEF (≤45%)). Please consult a cardiologist for further evaluation.",
+        "primaryCondition": {
+          "label": "lvef_lte_45_flag",
+          "name": "Reduced LVEF (≤45%)",
+          "probability": 0.8495477437973022
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.8810685873031616,
+            "confidence": "88.1%"
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8495477437973022,
+            "confidence": "85.0%"
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.6989225745201111,
+            "confidence": "69.9%"
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.5367435812950134,
+            "confidence": "53.7%"
+          },
+          {
+            "label": "tricuspid_regurgitation_moderate_or_greater_flag",
+            "name": "Tricuspid Regurgitation (Moderate+)",
+            "probability": 0.3381299078464508,
+            "confidence": "33.8%"
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.8495477437973022,
+          "lvwt_gte_13_flag": 0.5367435812950134,
+          "aortic_stenosis_moderate_or_greater_flag": 0.022520985454320908,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.09622173756361008,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.2988002896308899,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.3381299078464508,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.08044327795505524,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.6989225745201111,
+          "pericardial_effusion_moderate_large_flag": 0.16543935239315033,
+          "pasp_gte_45_flag": 0.26599493622779846,
+          "tr_max_gte_32_flag": 0.15971967577934265,
+          "shd_moderate_or_greater_flag": 0.8810685873031616
+        }
+      },
+      "createdAt": "2026-04-25T12:48:43.279Z"
+    },
+    {
+      "id": "ec7db5f1-a65e-4c44-b7cb-7fc27556bcc9",
+      "userEmail": "test@example.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Normal",
+      "confidence": "0.3%",
+      "result": {
+        "condition": "Normal",
+        "prediction": "Normal",
+        "confidence": "0.3%",
+        "heartRate": null,
+        "recommendation": "No strong abnormal indicators detected. Maintain a healthy lifestyle and regular checkups.",
+        "primaryCondition": {
+          "label": "pericardial_effusion_moderate_large_flag",
+          "name": "Pericardial Effusion (Moderate/Large)",
+          "probability": 0.0026903527323156595
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.0027245497331023216,
+            "confidence": "0.3%",
+            "threshold": 0.512,
+            "isPositive": false
+          },
+          {
+            "label": "pericardial_effusion_moderate_large_flag",
+            "name": "Pericardial Effusion (Moderate/Large)",
+            "probability": 0.0026903527323156595,
+            "confidence": "0.3%",
+            "threshold": 0.053,
+            "isPositive": false
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.0011026058346033096,
+            "confidence": "0.1%",
+            "threshold": 0.273,
+            "isPositive": false
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.0009860702557489276,
+            "confidence": "0.1%",
+            "threshold": 0.177,
+            "isPositive": false
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.0009153420105576515,
+            "confidence": "0.1%",
+            "threshold": 0.319,
+            "isPositive": false
+          }
+        ],
+        "thresholds": {
+          "lvef_lte_45_flag": 0.266,
+          "lvwt_gte_13_flag": 0.319,
+          "aortic_stenosis_moderate_or_greater_flag": 0.309,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.061,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.238,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.22,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.044,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.177,
+          "pericardial_effusion_moderate_large_flag": 0.053,
+          "pasp_gte_45_flag": 0.273,
+          "tr_max_gte_32_flag": 0.242,
+          "shd_moderate_or_greater_flag": 0.512
+        },
+        "flags": {
+          "lvef_lte_45_flag": false,
+          "lvwt_gte_13_flag": false,
+          "aortic_stenosis_moderate_or_greater_flag": false,
+          "aortic_regurgitation_moderate_or_greater_flag": false,
+          "mitral_regurgitation_moderate_or_greater_flag": false,
+          "tricuspid_regurgitation_moderate_or_greater_flag": false,
+          "pulmonary_regurgitation_moderate_or_greater_flag": false,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": false,
+          "pericardial_effusion_moderate_large_flag": false,
+          "pasp_gte_45_flag": false,
+          "tr_max_gte_32_flag": false,
+          "shd_moderate_or_greater_flag": false
+        },
+        "positiveLabels": [],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.00018702883971855044,
+          "lvwt_gte_13_flag": 0.0009153420105576515,
+          "aortic_stenosis_moderate_or_greater_flag": 1.3396643794294505e-8,
+          "aortic_regurgitation_moderate_or_greater_flag": 5.372017426452658e-7,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.000011702306437655352,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.0005210029776208103,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 8.366892245703639e-8,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.0009860702557489276,
+          "pericardial_effusion_moderate_large_flag": 0.0026903527323156595,
+          "pasp_gte_45_flag": 0.0011026058346033096,
+          "tr_max_gte_32_flag": 0.0006720885285176337,
+          "shd_moderate_or_greater_flag": 0.0027245497331023216
+        }
+      },
+      "createdAt": "2026-04-25T13:31:38.266Z"
+    },
+    {
+      "id": "58dd5eee-f22d-456a-83ec-b9b9ae51d898",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "88.1%",
+      "result": {
+        "condition": "Reduced LVEF (≤45%)",
+        "prediction": "Abnormal",
+        "confidence": "88.1%",
+        "heartRate": null,
+        "recommendation": "Possible indicators detected (Reduced LVEF (≤45%)). Please consult a cardiologist for further evaluation.",
+        "primaryCondition": {
+          "label": "lvef_lte_45_flag",
+          "name": "Reduced LVEF (≤45%)",
+          "probability": 0.8495477437973022
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.8810685873031616,
+            "confidence": "88.1%",
+            "threshold": 0.512,
+            "isPositive": true
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8495477437973022,
+            "confidence": "85.0%",
+            "threshold": 0.266,
+            "isPositive": true
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.6989225745201111,
+            "confidence": "69.9%",
+            "threshold": 0.177,
+            "isPositive": true
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.5367435812950134,
+            "confidence": "53.7%",
+            "threshold": 0.319,
+            "isPositive": true
+          },
+          {
+            "label": "tricuspid_regurgitation_moderate_or_greater_flag",
+            "name": "Tricuspid Regurgitation (Moderate+)",
+            "probability": 0.3381299078464508,
+            "confidence": "33.8%",
+            "threshold": 0.22,
+            "isPositive": true
+          }
+        ],
+        "thresholds": {
+          "lvef_lte_45_flag": 0.266,
+          "lvwt_gte_13_flag": 0.319,
+          "aortic_stenosis_moderate_or_greater_flag": 0.309,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.061,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.238,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.22,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.044,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.177,
+          "pericardial_effusion_moderate_large_flag": 0.053,
+          "pasp_gte_45_flag": 0.273,
+          "tr_max_gte_32_flag": 0.242,
+          "shd_moderate_or_greater_flag": 0.512
+        },
+        "flags": {
+          "lvef_lte_45_flag": true,
+          "lvwt_gte_13_flag": true,
+          "aortic_stenosis_moderate_or_greater_flag": false,
+          "aortic_regurgitation_moderate_or_greater_flag": true,
+          "mitral_regurgitation_moderate_or_greater_flag": true,
+          "tricuspid_regurgitation_moderate_or_greater_flag": true,
+          "pulmonary_regurgitation_moderate_or_greater_flag": true,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": true,
+          "pericardial_effusion_moderate_large_flag": true,
+          "pasp_gte_45_flag": false,
+          "tr_max_gte_32_flag": false,
+          "shd_moderate_or_greater_flag": true
+        },
+        "positiveLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.8810685873031616,
+            "threshold": 0.512
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8495477437973022,
+            "threshold": 0.266
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.6989225745201111,
+            "threshold": 0.177
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.5367435812950134,
+            "threshold": 0.319
+          },
+          {
+            "label": "tricuspid_regurgitation_moderate_or_greater_flag",
+            "name": "Tricuspid Regurgitation (Moderate+)",
+            "probability": 0.3381299078464508,
+            "threshold": 0.22
+          },
+          {
+            "label": "mitral_regurgitation_moderate_or_greater_flag",
+            "name": "Mitral Regurgitation (Moderate+)",
+            "probability": 0.2988002896308899,
+            "threshold": 0.238
+          },
+          {
+            "label": "pericardial_effusion_moderate_large_flag",
+            "name": "Pericardial Effusion (Moderate/Large)",
+            "probability": 0.16543935239315033,
+            "threshold": 0.053
+          },
+          {
+            "label": "aortic_regurgitation_moderate_or_greater_flag",
+            "name": "Aortic Regurgitation (Moderate+)",
+            "probability": 0.09622173756361008,
+            "threshold": 0.061
+          },
+          {
+            "label": "pulmonary_regurgitation_moderate_or_greater_flag",
+            "name": "Pulmonary Regurgitation (Moderate+)",
+            "probability": 0.08044327795505524,
+            "threshold": 0.044
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.8495477437973022,
+          "lvwt_gte_13_flag": 0.5367435812950134,
+          "aortic_stenosis_moderate_or_greater_flag": 0.022520985454320908,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.09622173756361008,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.2988002896308899,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.3381299078464508,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.08044327795505524,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.6989225745201111,
+          "pericardial_effusion_moderate_large_flag": 0.16543935239315033,
+          "pasp_gte_45_flag": 0.26599493622779846,
+          "tr_max_gte_32_flag": 0.15971967577934265,
+          "shd_moderate_or_greater_flag": 0.8810685873031616
+        }
+      },
+      "createdAt": "2026-04-25T13:35:25.844Z"
+    },
+    {
+      "id": "a9ba0322-a4db-41ed-a50b-71b494be6caa",
+      "userEmail": "faseehbajwa786@gmail.com",
+      "date": "2026-04-25",
+      "heartRate": 0,
+      "prediction": "Abnormal",
+      "confidence": "94.6%",
+      "result": {
+        "condition": "Reduced LVEF (≤45%)",
+        "prediction": "Abnormal",
+        "confidence": "94.6%",
+        "heartRate": null,
+        "recommendation": "Possible indicators detected (Reduced LVEF (≤45%)). Please consult a cardiologist for further evaluation.",
+        "primaryCondition": {
+          "label": "lvef_lte_45_flag",
+          "name": "Reduced LVEF (≤45%)",
+          "probability": 0.8539591431617737
+        },
+        "topLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.9459631443023682,
+            "confidence": "94.6%",
+            "threshold": 0.512,
+            "isPositive": true
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8539591431617737,
+            "confidence": "85.4%",
+            "threshold": 0.266,
+            "isPositive": true
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.6512861251831055,
+            "confidence": "65.1%",
+            "threshold": 0.273,
+            "isPositive": true
+          },
+          {
+            "label": "tr_max_gte_32_flag",
+            "name": "TR Max ≥3.2 m/s",
+            "probability": 0.5925379991531372,
+            "confidence": "59.3%",
+            "threshold": 0.242,
+            "isPositive": true
+          },
+          {
+            "label": "mitral_regurgitation_moderate_or_greater_flag",
+            "name": "Mitral Regurgitation (Moderate+)",
+            "probability": 0.5737050771713257,
+            "confidence": "57.4%",
+            "threshold": 0.238,
+            "isPositive": true
+          }
+        ],
+        "thresholds": {
+          "lvef_lte_45_flag": 0.266,
+          "lvwt_gte_13_flag": 0.319,
+          "aortic_stenosis_moderate_or_greater_flag": 0.309,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.061,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.238,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.22,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.044,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.177,
+          "pericardial_effusion_moderate_large_flag": 0.053,
+          "pasp_gte_45_flag": 0.273,
+          "tr_max_gte_32_flag": 0.242,
+          "shd_moderate_or_greater_flag": 0.512
+        },
+        "flags": {
+          "lvef_lte_45_flag": true,
+          "lvwt_gte_13_flag": true,
+          "aortic_stenosis_moderate_or_greater_flag": true,
+          "aortic_regurgitation_moderate_or_greater_flag": true,
+          "mitral_regurgitation_moderate_or_greater_flag": true,
+          "tricuspid_regurgitation_moderate_or_greater_flag": true,
+          "pulmonary_regurgitation_moderate_or_greater_flag": true,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": true,
+          "pericardial_effusion_moderate_large_flag": true,
+          "pasp_gte_45_flag": true,
+          "tr_max_gte_32_flag": true,
+          "shd_moderate_or_greater_flag": true
+        },
+        "positiveLabels": [
+          {
+            "label": "shd_moderate_or_greater_flag",
+            "name": "Structural Heart Disease (Moderate+)",
+            "probability": 0.9459631443023682,
+            "threshold": 0.512
+          },
+          {
+            "label": "lvef_lte_45_flag",
+            "name": "Reduced LVEF (≤45%)",
+            "probability": 0.8539591431617737,
+            "threshold": 0.266
+          },
+          {
+            "label": "pasp_gte_45_flag",
+            "name": "PASP ≥45 mmHg",
+            "probability": 0.6512861251831055,
+            "threshold": 0.273
+          },
+          {
+            "label": "tr_max_gte_32_flag",
+            "name": "TR Max ≥3.2 m/s",
+            "probability": 0.5925379991531372,
+            "threshold": 0.242
+          },
+          {
+            "label": "mitral_regurgitation_moderate_or_greater_flag",
+            "name": "Mitral Regurgitation (Moderate+)",
+            "probability": 0.5737050771713257,
+            "threshold": 0.238
+          },
+          {
+            "label": "rv_systolic_dysfunction_moderate_or_greater_flag",
+            "name": "RV Systolic Dysfunction (Moderate+)",
+            "probability": 0.5449380278587341,
+            "threshold": 0.177
+          },
+          {
+            "label": "lvwt_gte_13_flag",
+            "name": "Increased LV Wall Thickness (≥13mm)",
+            "probability": 0.521228015422821,
+            "threshold": 0.319
+          },
+          {
+            "label": "tricuspid_regurgitation_moderate_or_greater_flag",
+            "name": "Tricuspid Regurgitation (Moderate+)",
+            "probability": 0.4921412169933319,
+            "threshold": 0.22
+          },
+          {
+            "label": "aortic_stenosis_moderate_or_greater_flag",
+            "name": "Aortic Stenosis (Moderate+)",
+            "probability": 0.3762892186641693,
+            "threshold": 0.309
+          },
+          {
+            "label": "aortic_regurgitation_moderate_or_greater_flag",
+            "name": "Aortic Regurgitation (Moderate+)",
+            "probability": 0.1068408414721489,
+            "threshold": 0.061
+          },
+          {
+            "label": "pericardial_effusion_moderate_large_flag",
+            "name": "Pericardial Effusion (Moderate/Large)",
+            "probability": 0.08694502711296082,
+            "threshold": 0.053
+          },
+          {
+            "label": "pulmonary_regurgitation_moderate_or_greater_flag",
+            "name": "Pulmonary Regurgitation (Moderate+)",
+            "probability": 0.05701559782028198,
+            "threshold": 0.044
+          }
+        ],
+        "probabilities": {
+          "lvef_lte_45_flag": 0.8539591431617737,
+          "lvwt_gte_13_flag": 0.521228015422821,
+          "aortic_stenosis_moderate_or_greater_flag": 0.3762892186641693,
+          "aortic_regurgitation_moderate_or_greater_flag": 0.1068408414721489,
+          "mitral_regurgitation_moderate_or_greater_flag": 0.5737050771713257,
+          "tricuspid_regurgitation_moderate_or_greater_flag": 0.4921412169933319,
+          "pulmonary_regurgitation_moderate_or_greater_flag": 0.05701559782028198,
+          "rv_systolic_dysfunction_moderate_or_greater_flag": 0.5449380278587341,
+          "pericardial_effusion_moderate_large_flag": 0.08694502711296082,
+          "pasp_gte_45_flag": 0.6512861251831055,
+          "tr_max_gte_32_flag": 0.5925379991531372,
+          "shd_moderate_or_greater_flag": 0.9459631443023682
+        }
+      },
+      "createdAt": "2026-04-25T13:36:23.004Z"
     }
   ],
   "contacts": [
