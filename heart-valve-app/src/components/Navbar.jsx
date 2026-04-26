@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -62,6 +62,26 @@ const Navbar = () => {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState('home');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
+
+  const displayName = useMemo(() => {
+    if (!user) return '';
+    const first = String(user.firstName || '').trim();
+    if (first) return first;
+    const email = String(user.email || '').trim();
+    return email ? email.split('@')[0] : 'User';
+  }, [user]);
+
+  const displayEmail = useMemo(() => {
+    if (!user) return '';
+    return String(user.email || '').trim();
+  }, [user]);
+
+  const avatarLetter = useMemo(() => {
+    const ch = (displayName || displayEmail || 'U').trim()[0] || 'U';
+    return ch.toUpperCase();
+  }, [displayName, displayEmail]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,6 +112,26 @@ const Navbar = () => {
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const onMouseDown = (e) => {
+      if (!isUserMenuOpen) return;
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isUserMenuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -136,22 +176,78 @@ const Navbar = () => {
             </svg>
           </button>
           {user ? (
-            <div className="hidden sm:flex items-center gap-4">
-              <Link to="/dashboard" className="text-white/90 hover:text-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700 rounded-lg px-2 py-1">
-                Dashboard
-              </Link>
-              <span className="text-sm font-medium flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                {user.firstName || user.email.split('@')[0]}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-2 font-bold text-sm tracking-wide transition-colors rounded-lg shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
-              >
-                LOGOUT
-              </button>
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
+                  aria-haspopup="menu"
+                  aria-expanded={isUserMenuOpen}
+                >
+                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center font-bold">
+                    {avatarLetter}
+                  </div>
+                  <div className="hidden md:flex flex-col items-start leading-tight">
+                    <div className="text-sm font-semibold text-white">{displayName}</div>
+                    <div className="text-xs text-white/80">{displayEmail}</div>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/90" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                  </svg>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-72 overflow-hidden rounded-xl border border-white/20 bg-white text-gray-900 shadow-xl"
+                    role="menu"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="text-sm font-semibold">{displayName}</div>
+                      <div className="text-xs text-gray-600 break-all">{displayEmail}</div>
+                    </div>
+                    <div className="py-2">
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm hover:bg-gray-50"
+                        role="menuitem"
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/prediction"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm hover:bg-gray-50"
+                        role="menuitem"
+                      >
+                        Prediction
+                      </Link>
+                      <Link
+                        to="/history"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm hover:bg-gray-50"
+                        role="menuitem"
+                      >
+                        History
+                      </Link>
+                    </div>
+                    <div className="border-t border-gray-100 py-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                        role="menuitem"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <Link
@@ -173,6 +269,8 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/dashboard" onClick={closeMobileMenu} className="block rounded-lg px-3 py-2 text-white/90 hover:text-white hover:bg-white/10">Dashboard</Link>
+              <Link to="/prediction" onClick={closeMobileMenu} className="block rounded-lg px-3 py-2 text-white/90 hover:text-white hover:bg-white/10">Prediction</Link>
+              <Link to="/history" onClick={closeMobileMenu} className="block rounded-lg px-3 py-2 text-white/90 hover:text-white hover:bg-white/10">History</Link>
               <button
                 type="button"
                 onClick={() => {

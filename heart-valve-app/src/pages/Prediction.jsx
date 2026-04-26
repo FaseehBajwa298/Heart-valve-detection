@@ -187,7 +187,9 @@ const Prediction = () => {
       result.topLabels.slice(0, 8).forEach((item) => {
         const name = item.name || LABEL_DISPLAY[item.label] || item.label;
         const conf = item.confidence || formatPercent(item.probability);
-        doc.text(name, 25, yPos);
+        const status =
+          typeof item.isPositive === 'boolean' ? (item.isPositive ? 'Positive' : 'Negative') : '';
+        doc.text(status ? `${name} (${status})` : name, 25, yPos);
         doc.text(conf, 160, yPos);
         yPos += 7;
       });
@@ -342,8 +344,19 @@ const Prediction = () => {
                       <div className="text-sm font-semibold text-gray-800">
                         {item.name || LABEL_DISPLAY[item.label] || item.label}
                       </div>
-                      <div className="text-sm font-bold text-blue-700">
-                        {item.confidence || formatPercent(item.probability)}
+                      <div className="flex items-center gap-3">
+                        {typeof item.isPositive === 'boolean' && (
+                          <div
+                            className={`text-xs font-bold px-2 py-1 rounded ${
+                              item.isPositive ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                            }`}
+                          >
+                            {item.isPositive ? 'Positive' : 'Negative'}
+                          </div>
+                        )}
+                        <div className="text-sm font-bold text-blue-700">
+                          {item.confidence || formatPercent(item.probability)}
+                        </div>
                       </div>
                     </div>
                   ))}
