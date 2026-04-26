@@ -5,10 +5,34 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { spawn } from 'child_process';
 import mongoose from 'mongoose';
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
+
+const loadEnvFromFile = () => {
+  try {
+    const envPath = fileURLToPath(new URL('../.env', import.meta.url));
+    if (!fs.existsSync(envPath)) return;
+    const raw = fs.readFileSync(envPath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = String(line || '').trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx <= 0) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let value = trimmed.slice(eqIdx + 1).trim();
+      if (!key) continue;
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (process.env.NODE_ENV !== 'production' || process.env[key] == null || process.env[key] === '') {
+        process.env[key] = value;
+      }
+    }
+  } catch {}
+};
+
+loadEnvFromFile();
 
 const PORT = Number(process.env.PORT || 3001);
 const isProd = process.env.NODE_ENV === 'production';
@@ -31,8 +55,8 @@ const ensureMongoDbInUri = (uri, dbName) => {
     return `${base}/${dbName}${query}`;
   }
 
-  const path = afterScheme.slice(firstSlash);
-  if (path === '/') {
+  const pathPart = afterScheme.slice(firstSlash);
+  if (pathPart === '/') {
     const hostPart = base.slice(0, schemeIdx + 3 + firstSlash);
     return `${hostPart}/${dbName}${query}`;
   }
@@ -40,13 +64,33 @@ const ensureMongoDbInUri = (uri, dbName) => {
   return uri;
 };
 
-const MONGO_CONFIGURED = Boolean(process.env.MONGO_URI || process.env.MONGODB_URI);
 const MONGO_DB_NAME = process.env.MONGO_DB_NAME || 'heart_valve_app';
-const RAW_MONGO_URI =
-  process.env.MONGO_URI || process.env.MONGODB_URI || `mongodb://127.0.0.1:27017/${MONGO_DB_NAME}`;
-const MONGO_URI = ensureMongoDbInUri(RAW_MONGO_URI, MONGO_DB_NAME);
+const RAW_MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+const MONGO_URI = RAW_MONGO_URI ? ensureMongoDbInUri(RAW_MONGO_URI, MONGO_DB_NAME) : '';
+const MONGO_CONFIGURED = Boolean(MONGO_URI);
 let mongoConnected = false;
 let mongoConnectError = '';
+
+const getMongoUriInfo = (uri) => {
+  try {
+    const s = String(uri || '').trim();
+    if (!s) return { host: '', db: '' };
+    const schemeIdx = s.indexOf('://');
+    const afterScheme = schemeIdx >= 0 ? s.slice(schemeIdx + 3) : s;
+    const withoutCreds = afterScheme.includes('@') ? afterScheme.slice(afterScheme.indexOf('@') + 1) : afterScheme;
+    const slashIdx = withoutCreds.indexOf('/');
+    const qIdx = withoutCreds.indexOf('?');
+    const endHostsIdx = slashIdx >= 0 ? slashIdx : qIdx >= 0 ? qIdx : withoutCreds.length;
+    const host = withoutCreds.slice(0, endHostsIdx);
+    if (slashIdx < 0) return { host, db: '' };
+    const afterSlash = withoutCreds.slice(slashIdx + 1);
+    const endDbIdx = afterSlash.indexOf('?');
+    const db = (endDbIdx >= 0 ? afterSlash.slice(0, endDbIdx) : afterSlash).trim();
+    return { host, db };
+  } catch {
+    return { host: '', db: '' };
+  }
+};
 
 const app = express();
 if (isProd) {
@@ -69,21 +113,6 @@ if (isProd) {
 }
 
 app.use(express.json({ limit: '30mb' }));
-
-const dbFilePath = fileURLToPath(new URL('./db.json', import.meta.url));
-const adapter = new JSONFile(dbFilePath);
-const db = new Low(adapter, { users: [], history: [], contacts: [] });
-const ensureDbShape = () => {
-  db.data ||= {};
-  db.data.users ||= [];
-  db.data.history ||= [];
-  db.data.contacts ||= [];
-};
-const readDb = async () => {
-  await db.read();
-  ensureDbShape();
-};
-await readDb();
 
 const nowIsoDate = () => new Date().toISOString().split('T')[0];
 
@@ -142,9 +171,13 @@ const ContactModel =
   );
 
 const connectMongo = async () => {
-  if (!MONGO_URI) return false;
+  if (!MONGO_URI) {
+    mongoConnected = false;
+    mongoConnectError = 'MongoDB is not configured';
+    return false;
+  }
   try {
-    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 1500 });
+    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
     mongoConnected = true;
     mongoConnectError = '';
     return true;
@@ -155,87 +188,7 @@ const connectMongo = async () => {
   }
 };
 
-const migrateLowDbToMongo = async () => {
-  if (!mongoConnected) return;
-  ensureDbShape();
-
-  const users = Array.isArray(db.data.users) ? db.data.users : [];
-  if (users.length) {
-    await UserModel.bulkWrite(
-      users.map((u) => ({
-        updateOne: {
-          filter: { email: u.email },
-          update: {
-            $set: {
-              email: u.email,
-              passwordHash: u.passwordHash,
-              firstName: u.firstName || '',
-              lastName: u.lastName || '',
-              resetToken: u.resetToken || null,
-              resetTokenExpiresAt: u.resetTokenExpiresAt || null,
-              createdAt: u.createdAt || '',
-            },
-          },
-          upsert: true,
-        },
-      })),
-      { ordered: false }
-    );
-  }
-
-  const history = Array.isArray(db.data.history) ? db.data.history : [];
-  if (history.length) {
-    await HistoryModel.bulkWrite(
-      history.map((h) => ({
-        updateOne: {
-          filter: { id: h.id },
-          update: {
-            $set: {
-              id: h.id,
-              userEmail: h.userEmail,
-              date: h.date,
-              heartRate: Number(h.heartRate || 0),
-              prediction: h.prediction,
-              confidence: h.confidence || '',
-              result: h.result ?? null,
-              createdAt: h.createdAt || '',
-            },
-          },
-          upsert: true,
-        },
-      })),
-      { ordered: false }
-    );
-  }
-
-  const contacts = Array.isArray(db.data.contacts) ? db.data.contacts : [];
-  if (contacts.length) {
-    await ContactModel.bulkWrite(
-      contacts.map((c) => ({
-        updateOne: {
-          filter: { id: c.id },
-          update: {
-            $set: {
-              id: c.id,
-              name: c.name,
-              email: c.email,
-              subject: c.subject,
-              message: c.message,
-              createdAt: c.createdAt || '',
-            },
-          },
-          upsert: true,
-        },
-      })),
-      { ordered: false }
-    );
-  }
-};
-
 await connectMongo();
-if (mongoConnected) {
-  await migrateLowDbToMongo();
-}
 
 const createToken = (user) => {
   return jwt.sign(
@@ -385,11 +338,14 @@ const runPythonPredict = (payload) => {
 };
 
 app.get('/api/health', (req, res) => {
+  const uriInfo = getMongoUriInfo(MONGO_URI);
   res.json({
     ok: true,
-    db: mongoConnected ? 'mongo' : 'json',
+    db: mongoConnected ? 'mongo' : 'none',
     mongoConfigured: MONGO_CONFIGURED,
     mongoError: mongoConnected ? '' : mongoConnectError,
+    mongoHost: uriInfo.host,
+    mongoDbFromUri: uriInfo.db,
   });
 });
 
@@ -401,37 +357,29 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     return;
   }
 
-  if (mongoConnected) {
-    const existing = await UserModel.findOne({ email: normalizedEmail }).lean();
-    if (existing) {
-      res.status(409).json({ message: 'User already exists with this email' });
-      return;
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await UserModel.create({
-      email: normalizedEmail,
-      passwordHash,
-      firstName,
-      lastName,
-      createdAt: nowIsoDate(),
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
     });
-    const token = createToken(user);
-    res.json({ token, user: { email: user.email, firstName: user.firstName, lastName: user.lastName } });
     return;
   }
 
-  await readDb();
-  const existing = db.data.users.find((u) => u.email === normalizedEmail);
+  const existing = await UserModel.findOne({ email: normalizedEmail }).lean();
   if (existing) {
     res.status(409).json({ message: 'User already exists with this email' });
     return;
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = { email: normalizedEmail, passwordHash, firstName, lastName, createdAt: nowIsoDate() };
-  db.data.users.push(user);
-  await db.write();
+  const user = await UserModel.create({
+    email: normalizedEmail,
+    passwordHash,
+    firstName,
+    lastName,
+    createdAt: nowIsoDate(),
+  });
 
   const token = createToken(user);
   res.json({ token, user: { email: user.email, firstName: user.firstName, lastName: user.lastName } });
@@ -445,26 +393,16 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     return;
   }
 
-  if (mongoConnected) {
-    const user = await UserModel.findOne({ email: normalizedEmail }).lean();
-    if (!user) {
-      res.status(401).json({ message: 'Invalid email or password' });
-      return;
-    }
-
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      res.status(401).json({ message: 'Invalid email or password' });
-      return;
-    }
-
-    const token = createToken(user);
-    res.json({ token, user: { email: user.email, firstName: user.firstName, lastName: user.lastName } });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  const user = db.data.users.find((u) => u.email === normalizedEmail);
+  const user = await UserModel.findOne({ email: normalizedEmail }).lean();
   if (!user) {
     res.status(401).json({ message: 'Invalid email or password' });
     return;
@@ -488,30 +426,24 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
     return;
   }
 
-  const resetToken = randomUUID();
-  const resetTokenExpiresAt = Date.now() + 15 * 60 * 1000;
-
-  if (mongoConnected) {
-    const user = await UserModel.findOne({ email: normalizedEmail }).lean();
-    if (!user) {
-      res.json({ ok: true });
-      return;
-    }
-    await UserModel.updateOne({ email: normalizedEmail }, { $set: { resetToken, resetTokenExpiresAt } });
-    res.json({ ok: true, resetToken });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  const user = db.data.users.find((u) => u.email === normalizedEmail);
+  const resetToken = randomUUID();
+  const resetTokenExpiresAt = Date.now() + 15 * 60 * 1000;
+  const user = await UserModel.findOne({ email: normalizedEmail }).lean();
   if (!user) {
     res.json({ ok: true });
     return;
   }
 
-  user.resetToken = resetToken;
-  user.resetTokenExpiresAt = resetTokenExpiresAt;
-  await db.write();
+  await UserModel.updateOne({ email: normalizedEmail }, { $set: { resetToken, resetTokenExpiresAt } });
   res.json({ ok: true, resetToken });
 });
 
@@ -522,33 +454,26 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     return;
   }
 
-  if (mongoConnected) {
-    const user = await UserModel.findOne({ resetToken: token }).lean();
-    if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < Date.now()) {
-      res.status(400).json({ message: 'Invalid or expired token' });
-      return;
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    await UserModel.updateOne(
-      { email: user.email },
-      { $set: { passwordHash }, $unset: { resetToken: '', resetTokenExpiresAt: '' } }
-    );
-    res.json({ ok: true });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  const user = db.data.users.find((u) => u.resetToken === token);
+  const user = await UserModel.findOne({ resetToken: token }).lean();
   if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < Date.now()) {
     res.status(400).json({ message: 'Invalid or expired token' });
     return;
   }
 
-  user.passwordHash = await bcrypt.hash(newPassword, 10);
-  delete user.resetToken;
-  delete user.resetTokenExpiresAt;
-  await db.write();
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await UserModel.updateOne(
+    { email: user.email },
+    { $set: { passwordHash }, $unset: { resetToken: '', resetTokenExpiresAt: '' } }
+  );
   res.json({ ok: true });
 });
 
@@ -567,29 +492,30 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     message: String(message),
     createdAt: new Date().toISOString(),
   };
-  if (mongoConnected) {
-    await ContactModel.create(item);
-    res.json({ ok: true });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  db.data.contacts.push(item);
-  await db.write();
+  await ContactModel.create(item);
   res.json({ ok: true });
 });
 
 app.get('/api/history', authMiddleware, async (req, res) => {
-  if (mongoConnected) {
-    const items = await HistoryModel.find({ userEmail: req.user.email }).sort({ createdAt: -1 }).lean();
-    res.json({ items });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  const items = db.data.history
-    .filter((h) => h.userEmail === req.user.email)
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const items = await HistoryModel.find({ userEmail: req.user.email }).sort({ createdAt: -1 }).lean();
   res.json({ items });
 });
 
@@ -609,15 +535,16 @@ app.post('/api/history', authMiddleware, async (req, res) => {
     confidence: confidence || '',
     createdAt: new Date().toISOString(),
   };
-  if (mongoConnected) {
-    await HistoryModel.create(item);
-    res.json({ item });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  db.data.history.push(item);
-  await db.write();
+  await HistoryModel.create(item);
   res.json({ item });
 });
 
@@ -699,7 +626,7 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     heartRate: result.heartRate || 0,
     prediction: result.prediction,
     confidence: result.confidence,
-    result: result, // Store the full result object for detailed report view
+    result: result,
   };
 
   const item = {
@@ -708,45 +635,45 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     ...entry,
     createdAt: new Date().toISOString(),
   };
-  if (mongoConnected) {
-    await HistoryModel.create(item);
-    res.json({ result, item });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  db.data.history.push(item);
-  await db.write();
-
+  await HistoryModel.create(item);
   res.json({ result, item });
 });
 
 app.delete('/api/history/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  if (mongoConnected) {
-    const out = await HistoryModel.deleteOne({ id, userEmail: req.user.email });
-    res.json({ deleted: out.deletedCount || 0 });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  const before = db.data.history.length;
-  db.data.history = db.data.history.filter((h) => !(h.id === id && h.userEmail === req.user.email));
-  const after = db.data.history.length;
-  await db.write();
-  res.json({ deleted: before - after });
+  const out = await HistoryModel.deleteOne({ id, userEmail: req.user.email });
+  res.json({ deleted: out.deletedCount || 0 });
 });
 
 app.delete('/api/history', authMiddleware, async (req, res) => {
-  if (mongoConnected) {
-    await HistoryModel.deleteMany({ userEmail: req.user.email });
-    res.json({ ok: true });
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
     return;
   }
 
-  await readDb();
-  db.data.history = db.data.history.filter((h) => h.userEmail !== req.user.email);
-  await db.write();
+  await HistoryModel.deleteMany({ userEmail: req.user.email });
   res.json({ ok: true });
 });
 
