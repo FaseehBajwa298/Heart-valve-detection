@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,7 +16,8 @@ const Login = () => {
   const [resetPassword, setResetPassword] = useState('');
   const [resetConfirm, setResetConfirm] = useState('');
   const [resetTokenFromApi, setResetTokenFromApi] = useState('');
-  const { login } = useAuth();
+  const [resetTokenInput, setResetTokenInput] = useState('');
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,6 +36,18 @@ const Login = () => {
     setMode('login');
   }, [resetToken]);
 
+  useEffect(() => {
+    if (resetToken) {
+      setResetTokenInput(resetToken);
+    }
+  }, [resetToken]);
+
+  useEffect(() => {
+    if (user && mode === 'login') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [mode, navigate, user]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -43,7 +58,7 @@ const Login = () => {
       const response = await login(email, password);
       
       if (response.success) {
-        navigate('/');
+        navigate('/dashboard', { replace: true });
       } else {
         setError(response.message);
       }
@@ -61,19 +76,43 @@ const Login = () => {
     setInfo('');
     setResetTokenFromApi('');
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.message || 'Request failed');
+        const extra = String(data?.mongoError || '').trim();
+        setError(`${data?.message || 'Request failed'}${extra ? ` (${extra})` : ''}`);
         return;
       }
-      setInfo('If an account exists for this email, a reset token has been generated.');
-      if (data?.resetToken) {
-        setResetTokenFromApi(data.resetToken);
+      const token =
+        String(data?.resetToken || data?.reset_token || data?.token || '').trim();
+      if (token) {
+        setInfo('Reset token generated. Continue to reset your password.');
+      } else {
+        let healthNote = '';
+        try {
+          const hRes = await fetch(`${API_BASE}/api/health`);
+          const hData = await hRes.json().catch(() => null);
+          const dbLabel = String(hData?.db || '').trim();
+          if (dbLabel) {
+            healthNote = ` Backend database: ${dbLabel}.`;
+          }
+          const mongoErr = String(hData?.mongoError || '').trim();
+          if (mongoErr) {
+            healthNote = `${healthNote} ${mongoErr}`;
+          }
+        } catch {
+          healthNote = '';
+        }
+        setInfo(
+          `No reset token was returned.${healthNote} This usually means the backend is not connected to the same MongoDB Atlas database where the user exists.`
+        );
+      }
+      if (token) {
+        setResetTokenFromApi(token);
       }
     } catch {
       setError('Request failed');
@@ -87,7 +126,8 @@ const Login = () => {
     setIsLoading(true);
     setError('');
     setInfo('');
-    if (!resetToken) {
+    const tokenToUse = String(resetTokenInput || '').trim();
+    if (!tokenToUse) {
       setError('Missing reset token');
       setIsLoading(false);
       return;
@@ -98,14 +138,15 @@ const Login = () => {
       return;
     }
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: resetToken, newPassword: resetPassword }),
+        body: JSON.stringify({ token: tokenToUse, newPassword: resetPassword }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.message || 'Reset failed');
+        const extra = String(data?.mongoError || '').trim();
+        setError(`${data?.message || 'Reset failed'}${extra ? ` (${extra})` : ''}`);
         return;
       }
       setInfo('Password updated successfully. Please sign in.');
@@ -157,6 +198,21 @@ const Login = () => {
 
         {mode === 'reset' ? (
           <form className="space-y-6" onSubmit={handleResetPassword}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Reset Token</label>
+              <div className="mt-1 relative">
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-gray-900 disabled:bg-gray-50"
+                  placeholder="Paste reset token"
+                  required
+                  disabled={isLoading}
+                  value={resetTokenInput}
+                  onChange={(e) => setResetTokenInput(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700">New Password</label>
               <div className="mt-1 relative">
@@ -247,13 +303,41 @@ const Login = () => {
             </button>
 
             {resetTokenFromApi && (
-              <button
-                type="button"
-                onClick={() => navigate(`/login?resetToken=${encodeURIComponent(resetTokenFromApi)}`)}
-                className="w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-200 transition"
-              >
-                Continue to Reset
-              </button>
+              <div className="space-y-3">
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                  <div className="text-xs font-semibold text-gray-600 mb-2">Reset Token</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={resetTokenFromApi}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white text-gray-900 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(resetTokenFromApi);
+                          setInfo('Token copied. Continue to reset.');
+                        } catch {
+                          setInfo('Unable to copy the token. Please copy it manually.');
+                        }
+                      }}
+                      className="shrink-0 bg-gray-900 text-white px-3 py-2 text-xs font-bold rounded-md hover:bg-black transition"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/login?resetToken=${encodeURIComponent(resetTokenFromApi)}`)}
+                  className="w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-200 transition"
+                >
+                  Continue to Reset
+                </button>
+              </div>
             )}
 
             <button
