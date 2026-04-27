@@ -155,11 +155,6 @@ const Prediction = () => {
     doc.setFontSize(14);
     doc.text(result.confidence, 130, 85);
     
-    doc.setFontSize(10);
-    doc.text('Heart Rate:', 130, 95);
-    doc.setFontSize(14);
-    doc.text(result.heartRate || '—', 130, 105);
-    
     // Recommendation
     doc.setFontSize(12);
     doc.setTextColor(30, 58, 138); // blue-900
@@ -315,10 +310,6 @@ const Prediction = () => {
                 <div className="text-center">
                   <p className="text-sm text-gray-500 font-semibold mb-1">Confidence</p>
                   <p className="text-xl font-bold text-gray-800">{result.confidence}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-gray-500 font-semibold mb-1">Heart Rate</p>
-                  <p className="text-xl font-bold text-gray-800">{result.heartRate || '—'}</p>
                 </div>
               </div>
             </div>

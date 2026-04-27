@@ -181,16 +181,16 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
+                  className="flex items-center gap-2 rounded-full bg-white/10 px-2 py-1 hover:bg-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
                   aria-haspopup="menu"
                   aria-expanded={isUserMenuOpen}
                 >
-                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center font-bold">
+                  <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">
                     {avatarLetter}
                   </div>
                   <div className="hidden md:flex flex-col items-start leading-tight">
-                    <div className="text-sm font-semibold text-white">{displayName}</div>
-                    <div className="text-xs text-white/80">{displayEmail}</div>
+                    <div className="text-xs font-semibold text-white">{displayName}</div>
+                    <div className="text-[10px] text-white/80">{displayEmail}</div>
                   </div>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/90" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />

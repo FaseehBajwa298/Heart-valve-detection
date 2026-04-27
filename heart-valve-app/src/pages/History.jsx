@@ -65,6 +65,8 @@ const History = () => {
             prediction: item.prediction,
             confidence: item.confidence || '',
             result: item.result, // Add full result object
+            ecgFile: item.ecgFile || null,
+            tabularFile: item.tabularFile || null,
           }))
         );
       } catch {
@@ -129,6 +131,35 @@ const History = () => {
 
   const closeDetails = () => setSelectedRecord(null);
 
+  const downloadUploadedFile = async (record, kind) => {
+    if (!token || !record?.id) return;
+    setError('');
+    try {
+      const res = await fetch(`/api/history/${record.id}/file/${kind}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || 'Failed to download file');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fallbackName = `${kind}-${record.date || 'record'}.bin`;
+      const nameFromHeader = res.headers.get('content-disposition') || '';
+      const match = /filename="([^"]+)"/i.exec(nameFromHeader);
+      a.href = url;
+      a.download = match?.[1] || fallbackName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Failed to download file');
+    }
+  };
+
   const handleDownloadReport = (record) => {
      if (!record || !record.result) return;
      const { result } = record;
@@ -172,11 +203,6 @@ const History = () => {
      doc.text('Confidence:', 130, 75);
      doc.setFontSize(14);
      doc.text(result.confidence, 130, 85);
-     
-     doc.setFontSize(10);
-     doc.text('Heart Rate:', 130, 95);
-     doc.setFontSize(14);
-     doc.text(result.heartRate && result.heartRate !== 0 ? `${result.heartRate} bpm` : '—', 130, 105);
      
      // Recommendation
      doc.setFontSize(12);
@@ -269,7 +295,6 @@ const History = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heart Rate</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prediction</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -279,7 +304,6 @@ const History = () => {
                 {historyData.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.heartRate ? `${record.heartRate} bpm` : '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         record.prediction === 'Normal' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -361,10 +385,6 @@ const History = () => {
                     <p className="text-sm text-gray-500 font-semibold mb-1">Confidence</p>
                     <p className="text-xl font-bold text-gray-800">{selectedRecord.result.confidence}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500 font-semibold mb-1">Heart Rate</p>
-                    <p className="text-xl font-bold text-gray-800">{selectedRecord.result.heartRate && selectedRecord.result.heartRate !== 0 ? `${selectedRecord.result.heartRate} bpm` : '—'}</p>
-                  </div>
                 </div>
               </div>
 
@@ -416,6 +436,22 @@ const History = () => {
                 >
                   Close
                 </button>
+                {token && (
+                  <button
+                    onClick={() => downloadUploadedFile(selectedRecord, 'ecg')}
+                    className="flex-1 bg-white text-blue-700 font-bold py-3 px-6 rounded-lg border border-blue-200 hover:bg-blue-50 transition"
+                  >
+                    Download ECG
+                  </button>
+                )}
+                {token && (
+                  <button
+                    onClick={() => downloadUploadedFile(selectedRecord, 'tabular')}
+                    className="flex-1 bg-white text-blue-700 font-bold py-3 px-6 rounded-lg border border-blue-200 hover:bg-blue-50 transition"
+                  >
+                    Download Tabular
+                  </button>
+                )}
                 <button
                   onClick={() => handleDownloadReport(selectedRecord)}
                   className="flex-1 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition shadow-lg"

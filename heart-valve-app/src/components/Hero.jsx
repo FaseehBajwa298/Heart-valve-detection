@@ -10,11 +10,6 @@ const Hero = () => {
       <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-xs font-semibold tracking-wide text-blue-700 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-blue-600"></span>
-              ECG-assisted screening · Research demo
-            </div>
-
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
               HeartValve AI
               <span className="block text-blue-700">Early insights from ECG patterns</span>
