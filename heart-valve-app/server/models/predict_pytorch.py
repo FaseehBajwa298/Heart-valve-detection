@@ -1,10 +1,12 @@
 import ast
 import base64
+import io
 import json
 import math
 import os
 import struct
 import sys
+import zipfile
 from array import array
 
 import torch
@@ -103,7 +105,7 @@ def load_npy_tensor(npy_bytes):
     return tensor
 
 
-class InceptionBlock(nn.Module):
+class InceptionBlockLegacy(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.b1 = nn.Conv1d(in_ch, out_ch, 1)
@@ -118,12 +120,34 @@ class InceptionBlock(nn.Module):
         return self.relu(self.bn(x))
 
 
-class ECGModel(nn.Module):
-    def __init__(self):
+class InceptionBlock(nn.Module):
+    def __init__(self, in_ch, out_ch):
         super().__init__()
-        self.inc1 = InceptionBlock(12, 32)
-        self.inc2 = InceptionBlock(128, 32)
-        self.inc3 = InceptionBlock(128, 32)
+        self.bottleneck = nn.Conv1d(in_ch, out_ch, 1, bias=False)
+        self.conv1 = nn.Conv1d(out_ch, out_ch, 9, padding=4, bias=False)
+        self.conv2 = nn.Conv1d(out_ch, out_ch, 19, padding=9, bias=False)
+        self.conv3 = nn.Conv1d(out_ch, out_ch, 39, padding=19, bias=False)
+        self.maxpool = nn.MaxPool1d(3, stride=1, padding=1)
+        self.conv_pool = nn.Conv1d(in_ch, out_ch, 1, bias=False)
+        self.bn = nn.BatchNorm1d(out_ch * 4)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x_in = x
+        x = self.bottleneck(x)
+        out = torch.cat(
+            [self.conv1(x), self.conv2(x), self.conv3(x), self.conv_pool(self.maxpool(x_in))],
+            dim=1,
+        )
+        return self.relu(self.bn(out))
+
+
+class ECGModelV1(nn.Module):
+    def __init__(self, block_cls=InceptionBlockLegacy):
+        super().__init__()
+        self.inc1 = block_cls(12, 32)
+        self.inc2 = block_cls(128, 32)
+        self.inc3 = block_cls(128, 32)
         self.pool = nn.AdaptiveAvgPool1d(1)
         self.tab = nn.Sequential(nn.Linear(7, 64), nn.ReLU(), nn.Dropout(0.3))
         self.fc = nn.Sequential(nn.Linear(192, 128), nn.ReLU(), nn.Dropout(0.4), nn.Linear(128, NUM_LABELS))
@@ -142,9 +166,46 @@ class ECGModel(nn.Module):
         return logits
 
 
+class ECGModelV2(nn.Module):
+    def __init__(self, block_cls=InceptionBlockLegacy):
+        super().__init__()
+        self.inc1 = block_cls(12, 32)
+        self.inc2 = block_cls(128, 32)
+        self.inc3 = block_cls(128, 32)
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.tab = nn.Sequential(nn.Linear(7, 64), nn.ReLU(), nn.Dropout(0.3))
+        self.fc = nn.Sequential(nn.Linear(192, 128), nn.ReLU(), nn.Linear(128, NUM_LABELS))
+
+    def forward(self, wave, tab):
+        wave = wave.squeeze(1).permute(0, 2, 1)
+        x1 = self.inc1(wave)
+        x2 = self.inc2(x1) + x1
+        x3 = self.inc3(x2) + x2
+        x = self.pool(x3).squeeze(-1)
+        t = self.tab(tab)
+        fused = torch.cat([x, t], dim=1)
+        logits = self.fc(fused)
+        return logits
+
+
 _MODEL = None
 _DEVICE = torch.device("cpu")
 _LEAD_STATS = None
+
+
+def _load_torch_object(path):
+    if os.path.isdir(path):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_STORED) as zf:
+            prefix = "archive"
+            for root, _dirs, files in os.walk(path):
+                for name in files:
+                    abs_path = os.path.join(root, name)
+                    rel_path = os.path.relpath(abs_path, path).replace(os.sep, "/")
+                    zf.write(abs_path, f"{prefix}/{rel_path}")
+        buf.seek(0)
+        return torch.load(buf, map_location=_DEVICE)
+    return torch.load(path, map_location=_DEVICE)
 
 
 def get_model():
@@ -153,21 +214,32 @@ def get_model():
         return _MODEL
     model_dir = os.path.dirname(__file__)
     candidates = [
+        os.path.join(model_dir, "final_model.pth"),
+        os.path.join(model_dir, "final_model"),
         os.path.join(model_dir, "best_model.pth"),
         os.path.join(model_dir, "best_model.pth.zip"),
         os.path.join(model_dir, "best_model"),
     ]
     model_path = None
     for cand in candidates:
-        if os.path.isfile(cand):
+        if os.path.isfile(cand) or os.path.isdir(cand):
             model_path = cand
             break
     if model_path is None:
         raise FileNotFoundError(
-            "Model weights not found. Expected one of: best_model.pth, best_model.pth.zip, best_model"
+            "Model weights not found. Expected one of: final_model.pth, final_model (folder), best_model.pth, best_model.pth.zip, best_model"
         )
-    model = ECGModel().to(_DEVICE)
-    state = torch.load(model_path, map_location=_DEVICE)
+    state = _load_torch_object(model_path)
+    if isinstance(state, nn.Module):
+        state.eval()
+        _MODEL = state
+        return state
+    if isinstance(state, dict) and "state_dict" in state and isinstance(state["state_dict"], dict):
+        state = state["state_dict"]
+    state_keys = set(state.keys()) if isinstance(state, dict) else set()
+    block_cls = InceptionBlock if ("inc1.bottleneck.weight" in state_keys) else InceptionBlockLegacy
+    model_cls = ECGModelV1 if ("label_corr" in state_keys or "fc.3.weight" in state_keys) else ECGModelV2
+    model = model_cls(block_cls=block_cls).to(_DEVICE)
     model.load_state_dict(state)
     model.eval()
     _MODEL = model
@@ -206,10 +278,19 @@ def to_wave_tensor(tensor):
         wave = tensor
         wave = wave.unsqueeze(0).unsqueeze(0)
         return wave
+    if tensor.dim() == 2 and tensor.shape[0] == 12:
+        wave = tensor.transpose(0, 1)
+        wave = wave.unsqueeze(0).unsqueeze(0)
+        return wave
     if tensor.dim() == 3 and tensor.shape[-1] == 12:
         if tensor.shape[0] == 1:
             return tensor.unsqueeze(0)
         return tensor.unsqueeze(1)
+    if tensor.dim() == 3 and tensor.shape[1] == 12:
+        t = tensor.permute(0, 2, 1)
+        if t.shape[0] == 1:
+            return t.unsqueeze(0)
+        return t.unsqueeze(1)
     if tensor.dim() == 4 and tensor.shape[-1] == 12:
         return tensor
     raise ValueError(f"Unsupported waveform shape: {tuple(tensor.shape)}")
@@ -241,6 +322,23 @@ def to_tabular_tensor(tensor):
     return t.view(1, 7)
 
 
+def extract_metadata_features(metadata):
+    # Expected 7 features: age_at_ecg, sex, ventricular_rate, atrial_rate, pr_interval, qrs_duration, qt_corrected
+    if not metadata or not isinstance(metadata, dict):
+        return None
+    try:
+        age = float(metadata.get("age_at_ecg") or 0)
+        sex = 1.0 if str(metadata.get("sex") or "").lower() == "female" else 0.0
+        v_rate = float(metadata.get("ventricular_rate") or 0)
+        a_rate = float(metadata.get("atrial_rate") or 0)
+        pr = float(metadata.get("pr_interval") or 0)
+        qrs = float(metadata.get("qrs_duration") or 0)
+        qt = float(metadata.get("qt_corrected") or 0)
+        return [age, sex, v_rate, a_rate, pr, qrs, qt]
+    except Exception:
+        return None
+
+
 def main():
     raw = sys.stdin.read()
     payload = json.loads(raw or "{}")
@@ -254,12 +352,18 @@ def main():
     wave = to_wave_tensor(wave_raw).to(_DEVICE).float()
     wave = normalize_wave(wave, payload)
 
-    tab_file_b64 = payload.get("tabFileBase64")
+    # Check for matched metadata first
+    metadata = payload.get("metadata")
+    meta_features = extract_metadata_features(metadata)
+
     tab_tensor = None
+    tab_file_b64 = payload.get("tabFileBase64")
     if isinstance(tab_file_b64, str) and tab_file_b64:
         tab_decoded = base64.b64decode(tab_file_b64)
         tab_raw = load_npy_tensor(tab_decoded)
         tab_tensor = to_tabular_tensor(tab_raw).to(_DEVICE)
+    elif meta_features:
+        tab_tensor = torch.tensor([meta_features], dtype=torch.float32, device=_DEVICE)
     else:
         tab = payload.get("tab")
         if isinstance(tab, list) and len(tab) == 7:
@@ -281,6 +385,7 @@ def main():
         "probabilities": prob_map,
         "top_labels": top_labels,
         "shd_probability": shd_prob,
+        "metadata_matched": meta_features is not None,
     }
     sys.stdout.write(json.dumps(out))
 

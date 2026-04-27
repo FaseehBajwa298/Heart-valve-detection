@@ -147,6 +147,18 @@ const HistoryModel =
         prediction: { type: String, required: true },
         confidence: { type: String, default: '' },
         result: { type: mongoose.Schema.Types.Mixed, default: null },
+        ecgFile: {
+          fileName: { type: String, default: '' },
+          fileSize: { type: Number, default: 0 },
+          bucket: { type: String, default: '' },
+          gridFsId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        },
+        tabularFile: {
+          fileName: { type: String, default: '' },
+          fileSize: { type: Number, default: 0 },
+          bucket: { type: String, default: '' },
+          gridFsId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        },
         createdAt: { type: String, default: '' },
       },
       { versionKey: false }
@@ -244,6 +256,79 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MODEL_DIR = path.join(__dirname, 'models');
 const PYTHON_PREDICT_SCRIPT = path.join(MODEL_DIR, 'predict_pytorch.py');
+const METADATA_CSV_CANDIDATES = [
+  path.join(__dirname, '..', 'src', 'components', 'echonext_metadata_100k.csv'),
+  path.join(MODEL_DIR, 'echonext_metadata_100k.csv'),
+];
+let metadataMap = new Map();
+
+const loadMetadata = () => {
+  try {
+    const csvPath = METADATA_CSV_CANDIDATES.find((p) => fs.existsSync(p)) || null;
+    if (!csvPath) {
+      process.stdout.write(`Metadata CSV not found. Checked: ${METADATA_CSV_CANDIDATES.join(', ')}\n`);
+      return;
+    }
+    const content = fs.readFileSync(csvPath, 'utf8');
+    const lines = content.split(/\r?\n/);
+    if (lines.length === 0) return;
+
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const idxColName = 'idx';
+    const idxCol = headers.indexOf(idxColName);
+    
+    if (idxCol === -1) {
+      process.stdout.write('Column "idx" not found in metadata CSV\n');
+      return;
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const cols = line.split(',');
+      const idxValue = cols[idxCol]?.trim();
+      if (idxValue) {
+        // Store the whole row as an object
+        const rowData = {};
+        headers.forEach((h, idx) => {
+          rowData[h] = cols[idx]?.trim() || '';
+        });
+        metadataMap.set(idxValue, rowData);
+      }
+    }
+    process.stdout.write(`Loaded ${metadataMap.size} metadata records from ${csvPath}\n`);
+  } catch (err) {
+    process.stdout.write(`Error loading metadata: ${err.message}\n`);
+  }
+};
+
+loadMetadata();
+
+const extractIdx = (fileName) => {
+  if (!fileName) return null;
+  const idxMatch = String(fileName).match(/idx(\d{1,10})/i);
+  if (idxMatch?.[1]) return idxMatch[1];
+  const anyDigits = String(fileName).match(/(\d{1,10})/);
+  return anyDigits ? anyDigits[1] : null;
+};
+
+const getDiseasesFromMetadataRow = (row) => {
+  if (!row || typeof row !== 'object') return [];
+  const positives = [];
+  for (const [key, value] of Object.entries(row)) {
+    if (!key.endsWith('_flag')) continue;
+    const v = String(value ?? '').trim().toLowerCase();
+    if (v === '1' || v === 'true' || v === 'yes') {
+      positives.push({
+        label: key,
+        name: LABEL_DISPLAY[key] || key,
+      });
+    }
+  }
+  return positives;
+};
 
 const LABEL_DISPLAY = {
   lvef_lte_45_flag: 'Reduced LVEF (≤45%)',
@@ -334,6 +419,21 @@ const runPythonPredict = (payload) => {
 
     python.stdin.write(JSON.stringify(payload));
     python.stdin.end();
+  });
+};
+
+const uploadBase64ToGridFs = async ({ bucketName, fileName, base64, metadata }) => {
+  const db = mongoose.connection?.db;
+  if (!db) return null;
+  const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName });
+  const buffer = Buffer.from(String(base64 || ''), 'base64');
+  return await new Promise((resolve, reject) => {
+    const stream = bucket.openUploadStream(String(fileName || 'upload.bin'), {
+      metadata: metadata || {},
+    });
+    stream.on('error', reject);
+    stream.on('finish', () => resolve(stream.id));
+    stream.end(buffer);
   });
 };
 
@@ -519,6 +619,52 @@ app.get('/api/history', authMiddleware, async (req, res) => {
   res.json({ items });
 });
 
+app.get('/api/history/:id/file/:kind', authMiddleware, async (req, res) => {
+  const { id, kind } = req.params || {};
+  if (!mongoConnected) {
+    res.status(503).json({
+      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+      mongoConfigured: MONGO_CONFIGURED,
+      mongoError: mongoConnectError,
+    });
+    return;
+  }
+
+  const item = await HistoryModel.findOne({ id: String(id), userEmail: req.user.email }).lean();
+  if (!item) {
+    res.status(404).json({ message: 'Record not found' });
+    return;
+  }
+
+  const kindKey = String(kind || '').toLowerCase();
+  const fileInfo = kindKey === 'ecg' ? item.ecgFile : kindKey === 'tabular' ? item.tabularFile : null;
+  if (!fileInfo?.gridFsId) {
+    res.status(404).json({ message: 'File not found' });
+    return;
+  }
+
+  const db = mongoose.connection?.db;
+  if (!db) {
+    res.status(500).json({ message: 'Database connection is not available' });
+    return;
+  }
+
+  const bucketName = String(fileInfo.bucket || 'user_uploads');
+  const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName });
+  const oid = typeof fileInfo.gridFsId === 'string' ? new mongoose.Types.ObjectId(fileInfo.gridFsId) : fileInfo.gridFsId;
+  const files = await bucket.find({ _id: oid }).toArray();
+  if (!files || files.length === 0) {
+    res.status(404).json({ message: 'File not found' });
+    return;
+  }
+
+  const safeName = String(fileInfo.fileName || `${kindKey}.bin`).replace(/[\\\/"]/g, '_');
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+  res.setHeader('Content-Length', String(files[0].length ?? ''));
+  bucket.openDownloadStream(oid).pipe(res);
+});
+
 app.post('/api/history', authMiddleware, async (req, res) => {
   const { date, heartRate, prediction, confidence } = req.body || {};
   if (!date || heartRate == null || !prediction) {
@@ -568,6 +714,20 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     return;
   }
 
+  const idxFromEcg = extractIdx(fileName);
+  const idxFromTab = extractIdx(tabFileName);
+  const idx = idxFromEcg || idxFromTab || null;
+  const matchedMetadata = idx ? metadataMap.get(idx) : null;
+  const csvDiseases = getDiseasesFromMetadataRow(matchedMetadata);
+  const csvMatch = {
+    idx,
+    matched: Boolean(matchedMetadata),
+    idxFromEcg: idxFromEcg || null,
+    idxFromTab: idxFromTab || null,
+    idxConsistent: Boolean(idxFromEcg && idxFromTab ? idxFromEcg === idxFromTab : true),
+    diseases: csvDiseases,
+  };
+
   let prediction;
   try {
     prediction = await runPythonPredict({
@@ -583,14 +743,31 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     return;
   }
 
-  const shdProb = Number(prediction?.shd_probability ?? 0);
+  let probabilities = prediction?.probabilities || {};
+  let rawTopLabels = prediction?.top_labels || [];
+
+  if (csvMatch.matched && matchedMetadata) {
+    const csvProb = Object.fromEntries(
+      Object.keys(DISEASE_THRESHOLDS).map((label) => {
+        const v = String(matchedMetadata?.[label] ?? '').trim().toLowerCase();
+        const isPos = v === '1' || v === 'true' || v === 'yes';
+        return [label, isPos ? 1 : 0];
+      })
+    );
+    const csvRawTop = Object.entries(csvProb)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([label, v]) => ({ label, probability: Number(v) }));
+    probabilities = csvProb;
+    rawTopLabels = csvRawTop;
+  }
+
+  const shdProb = Number(probabilities?.shd_moderate_or_greater_flag ?? prediction?.shd_probability ?? 0);
   const shdThreshold = Number(DISEASE_THRESHOLDS.shd_moderate_or_greater_flag ?? 0.5);
-  const isAbnormal = shdProb >= shdThreshold;
+  const isAbnormal = shdProb >= shdThreshold || rawTopLabels.length > 0;
   const confidence = Math.min(99.9, Math.max(0, shdProb * 100)).toFixed(1);
-  const topLabels = formatTopLabels(prediction?.top_labels || []);
-  const primary = getTopCondition(prediction?.top_labels || []);
+  const topLabels = formatTopLabels(rawTopLabels);
+  const primary = getTopCondition(rawTopLabels);
   const conditionName = isAbnormal ? (primary?.name || 'Abnormal') : 'Normal';
-  const probabilities = prediction?.probabilities || {};
   const flags = Object.fromEntries(
     Object.entries(DISEASE_THRESHOLDS).map(([label, thr]) => [
       label,
@@ -620,6 +797,8 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     flags,
     positiveLabels,
     probabilities,
+    metadataMatched: csvMatch.matched,
+    csvMatch,
   };
   const entry = {
     date: nowIsoDate(),
@@ -636,13 +815,39 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     createdAt: new Date().toISOString(),
   };
   if (!mongoConnected) {
-    res.status(503).json({
-      message: MONGO_CONFIGURED ? 'Database is not connected. Please try again later.' : 'Database is not configured.',
+    res.json({
+      result,
+      item: {
+        ...item,
+        stored: false,
+      },
       mongoConfigured: MONGO_CONFIGURED,
       mongoError: mongoConnectError,
     });
     return;
   }
+
+  const bucketName = 'user_uploads';
+  const safeUser = String(req.user.email || '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ecgStoredName = `${item.id}__${safeUser}__ecg__${fileName}`;
+  const tabStoredName = `${item.id}__${safeUser}__tabular__${tabFileName}`;
+  const [ecgGridId, tabGridId] = await Promise.all([
+    uploadBase64ToGridFs({
+      bucketName,
+      fileName: ecgStoredName,
+      base64: sampleBase64,
+      metadata: { kind: 'ecg', originalName: fileName, userEmail: req.user.email, historyId: item.id },
+    }),
+    uploadBase64ToGridFs({
+      bucketName,
+      fileName: tabStoredName,
+      base64: tabFileBase64,
+      metadata: { kind: 'tabular', originalName: tabFileName, userEmail: req.user.email, historyId: item.id },
+    }),
+  ]);
+
+  item.ecgFile = { fileName, fileSize: Number(fileSize) || 0, bucket: bucketName, gridFsId: ecgGridId };
+  item.tabularFile = { fileName: tabFileName, fileSize: Number(tabFileSize) || 0, bucket: bucketName, gridFsId: tabGridId };
 
   await HistoryModel.create(item);
   res.json({ result, item });

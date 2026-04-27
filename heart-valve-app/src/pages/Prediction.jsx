@@ -67,6 +67,10 @@ const Prediction = () => {
       alert("Please select a tabular .npy file to upload.");
       return;
     }
+    if (!token) {
+      setError('Please login to generate a prediction.');
+      return;
+    }
 
     setIsProcessing(true);
     setResult(null);
@@ -83,9 +87,13 @@ const Prediction = () => {
       }
       const sampleBase64 = await readSampleBase64(selectedFile);
       const tabFileBase64 = await readSampleBase64(tabularFile);
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
       const res = await fetch('/api/predict', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
@@ -150,10 +158,6 @@ const Prediction = () => {
     doc.text(result.condition, 30, 90);
     
     doc.setTextColor(50, 50, 50);
-    doc.setFontSize(10);
-    doc.text('Confidence:', 130, 75);
-    doc.setFontSize(14);
-    doc.text(result.confidence, 130, 85);
     
     // Recommendation
     doc.setFontSize(12);
@@ -223,7 +227,7 @@ const Prediction = () => {
                 type="file"
                 id="ecgFile"
                 name="ecgFile"
-                accept=".npy,.mat,.hea"
+                accept=".npy"
                 onChange={handleFileChange}
                 disabled={isProcessing}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -248,7 +252,7 @@ const Prediction = () => {
                     ) : (
                       <div>
                         <p className="text-lg font-medium text-gray-700">Click to Upload ECG File</p>
-                        <p className="text-sm text-gray-500 mt-1">Supported formats: .npy, .mat, .hea</p>
+                        <p className="text-sm text-gray-500 mt-1">Supported format: .npy</p>
                       </div>
                     )}
                   </>
@@ -306,12 +310,7 @@ const Prediction = () => {
                 </h3>
               </div>
               
-              <div className="flex gap-8">
-                <div className="text-center">
-                  <p className="text-sm text-gray-500 font-semibold mb-1">Confidence</p>
-                  <p className="text-xl font-bold text-gray-800">{result.confidence}</p>
-                </div>
-              </div>
+              <div />
             </div>
 
             <div className="bg-blue-50 rounded-lg p-6 mb-8 border border-blue-100">
@@ -330,7 +329,7 @@ const Prediction = () => {
               <div className="bg-white rounded-lg p-6 mb-8 border border-gray-100">
                 <h4 className="font-bold text-gray-800 mb-3">Detected Conditions</h4>
                 <div className="space-y-2">
-                  {result.topLabels.slice(0, 5).map((item) => (
+                  {result.topLabels.map((item) => (
                     <div key={item.label || item.name} className="flex items-center justify-between gap-4">
                       <div className="text-sm font-semibold text-gray-800">
                         {item.name || LABEL_DISPLAY[item.label] || item.label}
@@ -345,9 +344,6 @@ const Prediction = () => {
                             {item.isPositive ? 'Positive' : 'Negative'}
                           </div>
                         )}
-                        <div className="text-sm font-bold text-blue-700">
-                          {item.confidence || formatPercent(item.probability)}
-                        </div>
                       </div>
                     </div>
                   ))}
