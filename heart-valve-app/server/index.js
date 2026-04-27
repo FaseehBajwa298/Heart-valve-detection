@@ -695,13 +695,46 @@ app.post('/api/history', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
-  const { fileName, fileSize, sampleBase64, tabFileName, tabFileSize, tabFileBase64 } = req.body || {};
+  const {
+    fileName,
+    fileSize,
+    sampleBase64,
+    ecgDataFileName,
+    ecgDataFileSize,
+    ecgDataFileBase64,
+    tabFileName,
+    tabFileSize,
+    tabFileBase64,
+    tab,
+  } = req.body || {};
   if (!fileName || !fileSize || !sampleBase64) {
     res.status(400).json({ message: 'fileName, fileSize, sampleBase64 are required' });
     return;
   }
-  if (!tabFileName || !tabFileSize || !tabFileBase64) {
-    res.status(400).json({ message: 'tabFileName, tabFileSize, tabFileBase64 are required' });
+  const fileLower = String(fileName || '').toLowerCase();
+  const isNpy = fileLower.endsWith('.npy');
+  const isMat = fileLower.endsWith('.mat');
+  const isHea = fileLower.endsWith('.hea');
+  if (!isNpy && !isMat && !isHea) {
+    res.status(400).json({ message: 'Unsupported ECG format. Upload .npy, .mat, or .hea.' });
+    return;
+  }
+  if (isHea) {
+    if (!ecgDataFileName || !ecgDataFileSize || !ecgDataFileBase64) {
+      res.status(400).json({ message: 'For .hea uploads, ecgDataFileName, ecgDataFileSize, ecgDataFileBase64 are required (.dat file).' });
+      return;
+    }
+    if (!String(ecgDataFileName || '').toLowerCase().endsWith('.dat')) {
+      res.status(400).json({ message: 'For .hea uploads, the ECG data file must be a .dat file.' });
+      return;
+    }
+  }
+  const hasTabFile = Boolean(tabFileName && tabFileSize && tabFileBase64);
+  const hasTabArray = Array.isArray(tab) && tab.length === 7;
+  if (!hasTabFile && !hasTabArray) {
+    res.status(400).json({
+      message: 'Tabular data is required. Provide tabFileName/tabFileSize/tabFileBase64 or tab (7 values).',
+    });
     return;
   }
 
@@ -709,7 +742,11 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
     res.status(413).json({ message: 'File too large. Please upload a smaller ECG file.' });
     return;
   }
-  if (Number(tabFileSize) > 2 * 1024 * 1024) {
+  if (isHea && Number(ecgDataFileSize) > 50 * 1024 * 1024) {
+    res.status(413).json({ message: 'ECG .dat file too large. Please upload a smaller file.' });
+    return;
+  }
+  if (hasTabFile && Number(tabFileSize) > 2 * 1024 * 1024) {
     res.status(413).json({ message: 'Tabular file too large. Please upload a smaller .npy file.' });
     return;
   }
@@ -734,9 +771,13 @@ app.post('/api/predict', authMiddleware, predictLimiter, async (req, res) => {
       fileName,
       fileSize,
       fileBase64: sampleBase64,
-      tabFileName,
-      tabFileSize,
-      tabFileBase64,
+      ecgDataFileName: isHea ? ecgDataFileName : undefined,
+      ecgDataFileSize: isHea ? ecgDataFileSize : undefined,
+      ecgDataFileBase64: isHea ? ecgDataFileBase64 : undefined,
+      tabFileName: hasTabFile ? tabFileName : undefined,
+      tabFileSize: hasTabFile ? tabFileSize : undefined,
+      tabFileBase64: hasTabFile ? tabFileBase64 : undefined,
+      tab: hasTabArray ? tab : undefined,
     });
   } catch (err) {
     res.status(500).json({ message: 'Prediction service unavailable', detail: err?.message || String(err) });

@@ -6,6 +6,7 @@ import math
 import os
 import struct
 import sys
+import tempfile
 import zipfile
 from array import array
 
@@ -103,6 +104,121 @@ def load_npy_tensor(npy_bytes):
     if tensor.dtype != torch.float32:
         tensor = tensor.float()
     return tensor
+
+
+def _lower_ext(name):
+    n = str(name or "").lower()
+    if n.endswith(".npy"):
+        return "npy"
+    if n.endswith(".mat"):
+        return "mat"
+    if n.endswith(".hea"):
+        return "hea"
+    return ""
+
+
+def load_mat_tensor(mat_bytes):
+    try:
+        from scipy.io import loadmat
+    except Exception as exc:
+        raise ValueError(f"MAT support requires scipy. {exc}")
+    data = loadmat(io.BytesIO(mat_bytes))
+    arr = None
+    if isinstance(data, dict):
+        if "val" in data:
+            arr = data.get("val")
+        elif "data" in data:
+            arr = data.get("data")
+        else:
+            for k, v in data.items():
+                if str(k).startswith("__"):
+                    continue
+                shape = getattr(v, "shape", None)
+                if shape is None:
+                    continue
+                if len(shape) == 2 and shape[0] > 0 and shape[1] > 0:
+                    arr = v
+                    break
+    if arr is None:
+        raise ValueError("No 2D waveform array found in .mat file")
+    t = torch.tensor(arr)
+    if t.dtype != torch.float32:
+        t = t.float()
+    return t
+
+
+def _parse_wfdb_filenames_from_hea(hea_bytes):
+    try:
+        text = hea_bytes.decode("utf-8", errors="ignore")
+    except Exception:
+        text = ""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return None, []
+    first = lines[0].split()
+    record_name = first[0].strip() if first else None
+    data_files = []
+    for ln in lines[1:]:
+        parts = ln.split()
+        if not parts:
+            continue
+        fname = parts[0].strip()
+        if fname and fname.lower() not in ("~", "null"):
+            data_files.append(fname)
+    uniq = []
+    seen = set()
+    for f in data_files:
+        fl = f.lower()
+        if fl in seen:
+            continue
+        seen.add(fl)
+        uniq.append(f)
+    return record_name, uniq
+
+
+def load_wfdb_tensor(hea_bytes, dat_bytes):
+    try:
+        import wfdb
+    except Exception as exc:
+        raise ValueError(f"WFDB (.hea/.dat) support requires wfdb. {exc}")
+    record_name, data_files = _parse_wfdb_filenames_from_hea(hea_bytes)
+    if not record_name:
+        record_name = "record"
+    if len(data_files) == 0:
+        data_files = [f"{record_name}.dat"]
+    if len(data_files) != 1:
+        raise ValueError(f"Unsupported WFDB header: expected 1 data file reference, got {len(data_files)}")
+    with tempfile.TemporaryDirectory() as tmp:
+        hea_path = os.path.join(tmp, f"{record_name}.hea")
+        dat_path = os.path.join(tmp, data_files[0])
+        with open(hea_path, "wb") as f:
+            f.write(hea_bytes)
+        with open(dat_path, "wb") as f:
+            f.write(dat_bytes)
+        rec = wfdb.rdrecord(os.path.join(tmp, record_name))
+        sig = getattr(rec, "p_signal", None)
+        if sig is None:
+            sig = getattr(rec, "d_signal", None)
+        if sig is None:
+            raise ValueError("Unable to read WFDB signal from .hea/.dat")
+        t = torch.tensor(sig, dtype=torch.float32)
+        return t
+
+
+def load_ecg_tensor(file_name, file_b64, payload):
+    ext = _lower_ext(file_name)
+    decoded = base64.b64decode(str(file_b64 or ""))
+    if ext == "npy":
+        return load_npy_tensor(decoded)
+    if ext == "mat":
+        return load_mat_tensor(decoded)
+    if ext == "hea":
+        dat_b64 = payload.get("ecgDataFileBase64")
+        if not isinstance(dat_b64, str) or not dat_b64:
+            raise ValueError("Missing ecgDataFileBase64 for .hea upload")
+        dat_bytes = base64.b64decode(dat_b64)
+        return load_wfdb_tensor(decoded, dat_bytes)
+    raise ValueError(f"Unsupported ECG file extension for {file_name}")
 
 
 class InceptionBlockLegacy(nn.Module):
@@ -347,8 +463,7 @@ def main():
     if not file_name or not file_b64:
         raise ValueError("fileName and fileBase64 are required")
 
-    decoded = base64.b64decode(file_b64)
-    wave_raw = load_npy_tensor(decoded)
+    wave_raw = load_ecg_tensor(file_name, file_b64, payload)
     wave = to_wave_tensor(wave_raw).to(_DEVICE).float()
     wave = normalize_wave(wave, payload)
 
@@ -369,7 +484,7 @@ def main():
         if isinstance(tab, list) and len(tab) == 7:
             tab_tensor = torch.tensor([tab], dtype=torch.float32, device=_DEVICE)
         else:
-            tab_tensor = torch.zeros((1, 7), dtype=torch.float32, device=_DEVICE)
+            raise ValueError("Tabular data is required. Provide tabFileBase64, metadata (7 features), or tab (7 values).")
 
     model = get_model()
     with torch.no_grad():

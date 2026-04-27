@@ -17,24 +17,49 @@ const LABEL_DISPLAY = {
   shd_moderate_or_greater_flag: 'Structural Heart Disease (Moderate+)',
 };
 
-const formatPercent = (value) => {
-  const num = Number(value);
-  if (Number.isNaN(num)) return String(value || '');
-  const pct = num > 1 ? num : num * 100;
-  return `${pct.toFixed(1)}%`;
-};
+const toPdfSafeText = (text) =>
+  String(text ?? '')
+    .replaceAll('≤', '<=')
+    .replaceAll('≥', '>=');
 
 const Prediction = () => {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [ecgDataFile, setEcgDataFile] = useState(null);
   const [tabularFile, setTabularFile] = useState(null);
+  const [tabularMode, setTabularMode] = useState('file');
+  const [tabularValues, setTabularValues] = useState({
+    ageAtEcg: '',
+    sex: 'male',
+    ventricularRate: '',
+    atrialRate: '',
+    prInterval: '',
+    qrsDuration: '',
+    qtCorrected: '',
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const { token } = useAuth();
 
+  const getEcgExt = () => {
+    const name = String(selectedFile?.name || '').toLowerCase();
+    if (name.endsWith('.npy')) return 'npy';
+    if (name.endsWith('.mat')) return 'mat';
+    if (name.endsWith('.hea')) return 'hea';
+    return '';
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setSelectedFile(file);
+    setEcgDataFile(null);
+    setResult(null);
+    setError('');
+  };
+
+  const handleEcgDataChange = (e) => {
+    const file = e.target.files[0];
+    setEcgDataFile(file);
     setResult(null);
     setError('');
   };
@@ -42,6 +67,22 @@ const Prediction = () => {
   const handleTabularChange = (e) => {
     const file = e.target.files[0];
     setTabularFile(file);
+    setTabularMode('file');
+    setResult(null);
+    setError('');
+  };
+
+  const handleTabularModeChange = (mode) => {
+    setTabularMode(mode);
+    if (mode !== 'file') {
+      setTabularFile(null);
+    }
+    setResult(null);
+    setError('');
+  };
+
+  const handleTabularValueChange = (key, value) => {
+    setTabularValues((prev) => ({ ...prev, [key]: value }));
     setResult(null);
     setError('');
   };
@@ -63,10 +104,6 @@ const Prediction = () => {
       alert("Please select an ECG file to upload.");
       return;
     }
-    if (!tabularFile) {
-      alert("Please select a tabular .npy file to upload.");
-      return;
-    }
     if (!token) {
       setError('Please login to generate a prediction.');
       return;
@@ -77,16 +114,67 @@ const Prediction = () => {
     setError('');
 
     try {
-      if (!selectedFile.name.toLowerCase().endsWith('.npy')) {
-        setError('Only .npy ECG files are supported for model prediction right now.');
+      const ecgExt = getEcgExt();
+      if (!ecgExt) {
+        setError('Only .npy, .mat, or .hea ECG files are supported for model prediction right now.');
         return;
       }
-      if (!tabularFile.name.toLowerCase().endsWith('.npy')) {
-        setError('Only .npy tabular files are supported for model prediction right now.');
-        return;
+      if (ecgExt === 'hea') {
+        if (!ecgDataFile) {
+          alert('Please upload the matching .dat file for the selected .hea header.');
+          return;
+        }
+        if (!String(ecgDataFile.name || '').toLowerCase().endsWith('.dat')) {
+          setError('For .hea uploads, the ECG data file must be a .dat file.');
+          return;
+        }
       }
       const sampleBase64 = await readSampleBase64(selectedFile);
-      const tabFileBase64 = await readSampleBase64(tabularFile);
+      const payload = {
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        sampleBase64,
+      };
+      if (ecgExt === 'hea') {
+        const ecgDataFileBase64 = await readSampleBase64(ecgDataFile);
+        payload.ecgDataFileName = ecgDataFile.name;
+        payload.ecgDataFileSize = ecgDataFile.size;
+        payload.ecgDataFileBase64 = ecgDataFileBase64;
+      }
+
+      if (tabularMode === 'file') {
+        if (!tabularFile) {
+          alert("Please select a tabular .npy file to upload (or switch to manual input).");
+          return;
+        }
+        if (!tabularFile.name.toLowerCase().endsWith('.npy')) {
+          setError('Only .npy tabular files are supported for model prediction right now.');
+          return;
+        }
+        const tabFileBase64 = await readSampleBase64(tabularFile);
+        payload.tabFileName = tabularFile.name;
+        payload.tabFileSize = tabularFile.size;
+        payload.tabFileBase64 = tabFileBase64;
+      } else {
+        const toNumber = (v) => {
+          const n = Number(String(v ?? '').trim());
+          return Number.isFinite(n) ? n : null;
+        };
+        const age = toNumber(tabularValues.ageAtEcg);
+        const ventricularRate = toNumber(tabularValues.ventricularRate);
+        const atrialRate = toNumber(tabularValues.atrialRate);
+        const prInterval = toNumber(tabularValues.prInterval);
+        const qrsDuration = toNumber(tabularValues.qrsDuration);
+        const qtCorrected = toNumber(tabularValues.qtCorrected);
+        const sex = String(tabularValues.sex || '').toLowerCase() === 'female' ? 1 : 0;
+
+        const vals = [age, sex, ventricularRate, atrialRate, prInterval, qrsDuration, qtCorrected];
+        if (vals.some((v) => v == null)) {
+          setError('Please enter all 7 tabular values (valid numbers).');
+          return;
+        }
+        payload.tab = vals;
+      }
       const headers = { 'Content-Type': 'application/json' };
       if (token) {
         headers.Authorization = `Bearer ${token}`;
@@ -94,14 +182,7 @@ const Prediction = () => {
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          sampleBase64,
-          tabFileName: tabularFile.name,
-          tabFileSize: tabularFile.size,
-          tabFileBase64,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -155,7 +236,7 @@ const Prediction = () => {
     } else {
       doc.setTextColor(220, 38, 38); // red-600
     }
-    doc.text(result.condition, 30, 90);
+    doc.text(toPdfSafeText(result.condition), 30, 90);
     
     doc.setTextColor(50, 50, 50);
     
@@ -168,7 +249,7 @@ const Prediction = () => {
     doc.setFontSize(11);
     doc.setTextColor(75, 85, 99); // gray-600
     doc.setFont('helvetica', 'normal');
-    const splitRecommendation = doc.splitTextToSize(result.recommendation, 170);
+    const splitRecommendation = doc.splitTextToSize(toPdfSafeText(result.recommendation), 170);
     doc.text(splitRecommendation, 20, 135);
     
     // Detected Conditions
@@ -184,12 +265,10 @@ const Prediction = () => {
       doc.setFont('helvetica', 'normal');
       
       result.topLabels.slice(0, 8).forEach((item) => {
-        const name = item.name || LABEL_DISPLAY[item.label] || item.label;
-        const conf = item.confidence || formatPercent(item.probability);
+        const name = toPdfSafeText(item.name || LABEL_DISPLAY[item.label] || item.label);
         const status =
           typeof item.isPositive === 'boolean' ? (item.isPositive ? 'Positive' : 'Negative') : '';
         doc.text(status ? `${name} (${status})` : name, 25, yPos);
-        doc.text(conf, 160, yPos);
         yPos += 7;
       });
     }
@@ -227,7 +306,7 @@ const Prediction = () => {
                 type="file"
                 id="ecgFile"
                 name="ecgFile"
-                accept=".npy"
+                accept=".npy,.mat,.hea"
                 onChange={handleFileChange}
                 disabled={isProcessing}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -252,7 +331,7 @@ const Prediction = () => {
                     ) : (
                       <div>
                         <p className="text-lg font-medium text-gray-700">Click to Upload ECG File</p>
-                        <p className="text-sm text-gray-500 mt-1">Supported format: .npy</p>
+                        <p className="text-sm text-gray-500 mt-1">Supported formats: .npy, .mat, .hea</p>
                       </div>
                     )}
                   </>
@@ -260,33 +339,193 @@ const Prediction = () => {
               </div>
             </div>
 
-            <div className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
-              isProcessing ? 'bg-gray-100 border-gray-200 pointer-events-none' : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-            }`}>
-              <input
-                type="file"
-                id="tabularFile"
-                name="tabularFile"
-                accept=".npy"
-                onChange={handleTabularChange}
-                disabled={isProcessing}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700">
-                  {tabularFile ? tabularFile.name : 'Click to Upload Tabular .npy File'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {tabularFile ? `${(tabularFile.size / 1024).toFixed(2)} KB` : 'Required (7 tabular features)'}
-                </p>
+            {getEcgExt() === 'hea' && (
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
+                  isProcessing
+                    ? 'bg-gray-100 border-gray-200 pointer-events-none'
+                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                <input
+                  type="file"
+                  id="ecgDataFile"
+                  name="ecgDataFile"
+                  accept=".dat"
+                  onChange={handleEcgDataChange}
+                  disabled={isProcessing}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-700">
+                    {ecgDataFile ? ecgDataFile.name : 'Click to Upload ECG .dat File (required for .hea)'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {ecgDataFile ? `${(ecgDataFile.size / 1024).toFixed(2)} KB` : 'Required when ECG is .hea'}
+                  </p>
+                </div>
               </div>
+            )}
+
+            <div className="bg-white rounded-lg border border-gray-100 p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <div className="text-sm font-bold text-gray-800">Tabular Data (7 features)</div>
+                  <div className="text-xs text-gray-500">Required for prediction</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleTabularModeChange('file')}
+                    disabled={isProcessing}
+                    className={`px-3 py-1.5 text-xs font-bold rounded ${
+                      tabularMode === 'file' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+                    } ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    Upload .npy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabularModeChange('manual')}
+                    disabled={isProcessing}
+                    className={`px-3 py-1.5 text-xs font-bold rounded ${
+                      tabularMode === 'manual' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+                    } ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    Enter Manually
+                  </button>
+                </div>
+              </div>
+
+              {tabularMode === 'file' ? (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
+                    isProcessing
+                      ? 'bg-gray-100 border-gray-200 pointer-events-none'
+                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    id="tabularFile"
+                    name="tabularFile"
+                    accept=".npy"
+                    onChange={handleTabularChange}
+                    disabled={isProcessing}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700">
+                      {tabularFile ? tabularFile.name : 'Click to Upload Tabular .npy File'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {tabularFile ? `${(tabularFile.size / 1024).toFixed(2)} KB` : 'Required (7 values)'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Age</label>
+                    <input
+                      type="number"
+                      value={tabularValues.ageAtEcg}
+                      onChange={(e) => handleTabularValueChange('ageAtEcg', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 45"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Sex</label>
+                    <select
+                      value={tabularValues.sex}
+                      onChange={(e) => handleTabularValueChange('sex', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Ventricular Rate</label>
+                    <input
+                      type="number"
+                      value={tabularValues.ventricularRate}
+                      onChange={(e) => handleTabularValueChange('ventricularRate', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 75"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Atrial Rate</label>
+                    <input
+                      type="number"
+                      value={tabularValues.atrialRate}
+                      onChange={(e) => handleTabularValueChange('atrialRate', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 75"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">PR Interval</label>
+                    <input
+                      type="number"
+                      value={tabularValues.prInterval}
+                      onChange={(e) => handleTabularValueChange('prInterval', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 160"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">QRS Duration</label>
+                    <input
+                      type="number"
+                      value={tabularValues.qrsDuration}
+                      onChange={(e) => handleTabularValueChange('qrsDuration', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 90"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-1">QT Corrected</label>
+                    <input
+                      type="number"
+                      value={tabularValues.qtCorrected}
+                      onChange={(e) => handleTabularValueChange('qtCorrected', e.target.value)}
+                      disabled={isProcessing}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="e.g. 410"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={isProcessing || !selectedFile || !tabularFile}
+              disabled={
+                isProcessing ||
+                !selectedFile ||
+                (getEcgExt() === 'hea' && !ecgDataFile) ||
+                (tabularMode === 'file' && !tabularFile)
+              }
               className={`w-full font-bold py-3 px-6 rounded-lg transition duration-300 mt-6 ${
-                isProcessing || !selectedFile || !tabularFile
+                isProcessing ||
+                !selectedFile ||
+                (getEcgExt() === 'hea' && !ecgDataFile) ||
+                (tabularMode === 'file' && !tabularFile)
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
